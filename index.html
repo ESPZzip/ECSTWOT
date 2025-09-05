@@ -1,679 +1,597 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TWOTTER - ESP:Z</title>
-  <style>
-    :root{
-      --bg:#0f1419; --card:#151b22; --muted:#9aa4af; --text:#e6edf3; --accent:#1d9bf0; --ok:#10b981; --warn:#f59e0b; --err:#ef4444;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    a{color:var(--accent)}
-    .container{max-width:1100px;margin:0 auto;padding:12px}
-    header{position:sticky;top:0;background:rgba(15,20,25,.9);backdrop-filter:saturate(1.2) blur(8px);z-index:50;border-bottom:1px solid #222}
-    header .row{display:flex;align-items:center;gap:10px;padding:8px 0}
-    .logo{font-weight:800;letter-spacing:.3px}
-    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #26313d;padding:2px 8px;border-radius:999px;font-size:12px;color:var(--muted)}
-    .app{display:grid;grid-template-columns:280px 1fr 330px;gap:12px;margin-top:12px}
-    @media (max-width:1100px){.app{grid-template-columns:1fr}.right,.left{display:none}}
-    .card{background:var(--card);border:1px solid #22303c;border-radius:16px;padding:12px}
-    .title{font-weight:700;margin:0 0 8px}
-    .muted{color:var(--muted)}
-    input,textarea,select{width:100%;background:#0b0f14;color:var(--text);border:1px solid #22303c;border-radius:12px;padding:10px;margin:6px 0 10px;font:inherit}
-    textarea{min-height:80px;resize:vertical}
-    button{background:var(--accent);border:0;color:white;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer}
-    button.ghost{background:transparent;border:1px solid #22303c;color:var(--text)}
-    button.warn{background:var(--warn)}
-    button.ok{background:var(--ok)}
-    button.err{background:var(--err)}
-    .row{display:flex;gap:8px;align-items:center}
-    .between{display:flex;align-items:center;justify-content:space-between}
-    .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #22303c;background:#0b0f14}
-    .banner{width:100%;height:120px;object-fit:cover;border-radius:12px;border:1px solid #22303c;background:#0b0f14}
-    .post{display:grid;grid-template-columns:48px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #22303c}
-    .post img.media{max-width:100%;border-radius:12px;border:1px solid #22303c;margin-top:6px}
-    .chip{display:inline-flex;align-items:center;gap:6px;background:#0b0f14;border:1px solid #22303c;border-radius:999px;padding:2px 8px;font-size:12px}
-    .owner{color:#ff5a5a;font-weight:800}
-    .verified{display:inline-flex;align-items:center;gap:4px}
-    .verified svg{width:16px;height:16px}
-    .list{display:flex;flex-direction:column;gap:4px}
-    .pillbar{display:flex;gap:6px;flex-wrap:wrap}
-    .hidden{display:none !important}
-    .tabbar{display:flex;gap:8px;margin-bottom:8px}
-    .tab{padding:6px 10px;border:1px solid #22303c;border-radius:10px;cursor:pointer}
-    .tab.active{background:#0b0f14}
-    .dm{padding:8px;border-radius:10px;border:1px solid #22303c}
-    .msg{margin:6px 0}
-    .msg.you{ text-align:right }
-    .nowrap{white-space:nowrap}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>MiniDiscord • Fire</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#0d1326; --line:#1a2440; --soft:#0f1730;
+    --text:#e6edf7; --muted:#98a6c7; --accent:#5661ff; --ok:#16a34a; --warn:#f59e0b; --err:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;height:100vh;display:flex}
+  /* Layout */
+  #servers{width:76px;background:#0a0f1f;border-right:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+  #servers .srv{width:52px;height:52px;border-radius:18px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  #servers .srv.active{outline:2px solid var(--accent)}
+  #channels{width:260px;background:var(--panel);border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column}
+  #main{flex:1;display:flex;flex-direction:column}
+  #topbar{height:52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--panel)}
+  #chat{flex:1;display:grid;grid-template-columns:1fr 280px;gap:10px;padding:10px}
+  #messages{background:var(--soft);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+  #messageList{flex:1;overflow:auto;padding:12px}
+  #composer{border-top:1px solid var(--line);padding:10px;background:var(--panel);display:flex;gap:8px}
+  #members{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
+  /* Cards / buttons */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:10px;background:#0a1228;color:var(--text)}
+  button{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#0f1730;color:var(--text);cursor:pointer}
+  button.primary{background:var(--accent);border-color:transparent}
+  button.success{background:var(--ok);border-color:transparent}
+  button.warn{background:var(--warn);border-color:transparent}
+  button.danger{background:var(--err);border-color:transparent}
+  .muted{color:var(--muted)}
+  .title{font-weight:700}
+  .chip{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
+  .role{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:6px;border:1px solid var(--line)}
+  .msg{margin:8px 0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#0c142a}
+  .msg.me{background:#0f1b3b}
+  .avatar{width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--line)}
+  .hidden{display:none}
+  /* Toaster */
+  #toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+  .toast{background:#1f2937;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  /* Friends panel */
+  #friendsPanel{position:fixed;left:86px;top:62px;bottom:10px;width:420px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto;z-index:9}
+</style>
+<!-- Firebase v8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
-<header>
-  <div class="container row between">
+
+<!-- LEFT: Servers column -->
+<section id="servers">
+  <div class="srv" title="Amigos / DMs" onclick="toggleFriends()">👥</div>
+  <div id="serverList"></div>
+  <div class="srv" title="Crear servidor" onclick="openCreateServer()">＋</div>
+</section>
+
+<!-- MID-LEFT: Channels -->
+<section id="channels">
+  <div class="card" id="authBox">
+    <div class="title">Acceso</div>
+    <input id="loginUser" placeholder="Usuario"/>
+    <input id="loginPass" type="password" placeholder="Contraseña"/>
     <div class="row">
-      <div class="logo">Twotter🔨</div>
-      <div class="badge">Realtime • Firebase • Comunidades • DM</div>
+      <button class="primary" onclick="register()">Registrar</button>
+      <button onclick="login()">Login</button>
     </div>
-    <div class="row" id="sessionArea"></div>
   </div>
-</header>
+  <div class="card hidden" id="sessionBox">
+    <div class="row" style="justify-content:space-between">
+      <div class="title" id="meName">—</div>
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+    <div class="muted" id="meHint">ID listo</div>
+  </div>
 
-<main class="container app">
-  <aside class="left">
-    <div class="card">
-      <h3 class="title">Cuenta</h3>
-      <div id="authArea">
-        <!-- Login / Register -->
-        <div id="authForms">
-          <div class="tabbar">
-            <div class="tab active" data-tab="login">Iniciar sesión</div>
-            <div class="tab" data-tab="register">Registrarse</div>
-          </div>
-          <div id="loginForm">
-            <label>Usuario</label>
-            <input id="loginUser" placeholder="usuario" />
-            <label>Contraseña</label>
-            <input id="loginPass" type="password" placeholder="••••••" />
-            <button id="btnLogin">Entrar</button>
-          </div>
-          <div id="registerForm" class="hidden">
-            <label>Usuario</label>
-            <input id="regUser" placeholder="min 3, sin espacios" />
-            <label>Contraseña</label>
-            <input id="regPass" type="password" placeholder="min 6" />
-            <label>Avatar (URL de imagen)</label>
-            <input id="regAvatar" placeholder="https://...jpg" />
-            <label>Banner (URL de imagen)</label>
-            <input id="regBanner" placeholder="https://...jpg" />
-            <button id="btnRegister">Crear cuenta</button>
-          </div>
-        </div>
+  <div id="serverMeta" class="card hidden">
+    <div class="title" id="srvName">Servidor</div>
+    <div class="row">
+      <button onclick="openJoinServer()">Unirse</button>
+      <button onclick="copyInvite()">Invitar</button>
+      <button onclick="openRoles()">Roles</button>
+      <button onclick="openAddChannel()">Canal ＋</button>
+    </div>
+    <div class="muted" id="srvIdHint"></div>
+  </div>
+
+  <div id="channelList" class="card hidden">
+    <div class="title">Canales</div>
+    <div id="channelsBox"></div>
+  </div>
+</section>
+
+<!-- CENTER + RIGHT -->
+<section id="main">
+  <div id="topbar">
+    <div><span id="topServer">—</span> / <b id="topChannel">—</b></div>
+    <div class="row">
+      <button onclick="toggleFriends()">Amigos/DMs</button>
+    </div>
+  </div>
+
+  <div id="chat">
+    <div id="messages">
+      <div id="messageList"></div>
+      <div id="composer" class="hidden">
+        <input id="msgText" placeholder="Escribe un mensaje… (Enter para enviar)"/>
+        <button class="primary" onclick="sendMessage()">Enviar</button>
       </div>
     </div>
-
-    <div class="card">
-      <h3 class="title">Comunidades</h3>
-      <div id="communityCreate" class="hidden">
-        <label>Nombre</label>
-        <input id="commName" placeholder="Mi comunidad" />
-        <label>Descripción</label>
-        <textarea id="commDesc" placeholder="De qué trata"></textarea>
-        <label>Banner (URL de imagen)</label>
-        <input id="commBanner" placeholder="https://...jpg" />
-        <button id="btnCreateCommunity">Crear comunidad</button>
-      </div>
-      <div class="list" id="communityList"></div>
+    <div id="members">
+      <div class="title">Miembros</div>
+      <div id="memberList" class="muted">Selecciona un servidor…</div>
     </div>
+  </div>
+</section>
 
-    <div class="card">
-      <h3 class="title">Mensajes privados</h3>
-      <div id="dmStart" class="hidden">
-        <label>Enviar a (usuario)</label>
-        <input id="dmTo" placeholder="usuario" />
-        <label>Mensaje</label>
-        <input id="dmText" placeholder="hola 👋" />
-        <button id="btnSendDM">Enviar</button>
-      </div>
-      <div id="dmThread" class="hidden">
-        <div class="between"><div><b>Chat con</b> <span id="dmWith"></span></div><button class="ghost" id="btnCloseDM">Cerrar</button></div>
-        <div id="dmMessages" style="max-height:260px;overflow:auto;margin:8px 0"></div>
-        <div class="row">
-          <input id="dmInputMsg" placeholder="Escribe..." />
-          <button id="btnSendDMInline">Enviar</button>
-        </div>
-      </div>
-      <div class="list" id="dmList"></div>
+<!-- FRIENDS PANEL -->
+<section id="friendsPanel" class="hidden">
+  <div class="title">Amigos y DMs</div>
+  <div class="card">
+    <div class="row">
+      <input id="searchUser" placeholder="Buscar usuario para agregar"/>
+      <button onclick="sendFriendReq()">Enviar solicitud</button>
     </div>
-  </aside>
+  </div>
+  <div class="card">
+    <div class="title">Solicitudes recibidas</div>
+    <div id="reqInbox" class="muted">—</div>
+  </div>
+  <div class="card">
+    <div class="title">Solicitudes enviadas</div>
+    <div id="reqOut" class="muted">—</div>
+  </div>
+  <div class="card">
+    <div class="title">Amigos</div>
+    <div id="friendsList" class="muted">—</div>
+  </div>
+</section>
 
-  <section>
-    <div class="card" id="composerCard" class="hidden">
-      <div class="row">
-        <img id="meAvatar" class="avatar" alt="" />
-        <div style="flex:1">
-          <textarea id="postText" placeholder="¿Qué está pasando?"></textarea>
-          <input id="postImage" placeholder="URL de imagen (opcional)" />
-          <div class="between">
-            <div class="muted">Solo URLs de imagen (jpg/png/gif, etc.).</div>
-            <button id="btnPublish">Publicar</button>
-          </div>
-        </div>
-      </div>
-    </div>
+<!-- MODALS (simples) -->
+<div id="modalRoot"></div>
+<div id="toasts"></div>
 
-    <div class="card">
-      <div class="between"><h3 class="title">Timeline</h3>
-        <div class="pillbar">
-          <button class="ghost" id="btnAll">Todos</button>
-          <button class="ghost" id="btnOnlyFollowing">Siguiendo</button>
-        </div>
-      </div>
-      <div id="feed"></div>
-    </div>
-  </section>
+<script>
+/* ================== Firebase ================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBwj_as6pb5Bg81F9Cl9VWTKkekMM9Exfk",
+  authDomain: "pekora-forum.firebaseapp.com",
+  projectId: "pekora-forum",
+  storageBucket: "pekora-forum.firebasestorage.app",
+  messagingSenderId: "161910967859",
+  appId: "1:161910967859:web:6a28cecaae74b9b7e9dd46",
+  measurementId: "G-BPBTW5KBRK"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  <aside class="right">
-    <div class="card" id="profileCard">
-      <h3 class="title">Perfil</h3>
-      <img id="pBanner" class="banner" alt="" />
-      <div class="row" style="margin-top:-24px">
-        <img id="pAvatar" class="avatar" style="width:64px;height:64px;border:2px solid #151b22" alt=""/>
-        <div style="margin-left:6px">
-          <div id="pName" style="font-weight:800"></div>
-          <div class="muted">@<span id="pUser"></span> • <span id="pFollowers">0</span> seguidores</div>
-          <div id="roleLine" class="muted"></div>
-        </div>
-      </div>
-      <div id="pBio" style="margin-top:6px"></div>
-      <div class="row" style="margin-top:8px">
-        <button id="btnFollow" class="ghost hidden">Seguir</button>
-        <button id="btnUnfollow" class="ghost hidden">Siguiendo</button>
-        <button id="btnEditProfile" class="ghost hidden">Editar perfil</button>
-      </div>
+/* ================== Estado ================== */
+let me = null; // username
+let currentServer = null; // serverId
+let currentChannel = null; // channelId
 
-      <!-- Edición de perfil -->
-      <div id="editProfile" class="hidden" style="margin-top:10px">
-        <label>Nombre para mostrar</label>
-        <input id="editDisplay" />
-        <label>Bio</label>
-        <textarea id="editBio"></textarea>
-        <label>Avatar (URL de imagen)</label>
-        <input id="editAvatar" />
-        <label>Banner (URL de imagen)</label>
-        <input id="editBanner" />
-        <button id="btnSaveProfile" class="ok">Guardar</button>
-        <button id="btnCancelProfile" class="ghost">Cancelar</button>
-      </div>
+let unsubServers=null,unsubChannels=null,unsubMessages=null,unsubMembers=null;
+function $(id){return document.getElementById(id);}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.innerText=msg;$('toasts').appendChild(t);setTimeout(()=>t.remove(),3500);}
 
-      <!-- Panel solo para cracky -->
-      <div id="ownerTools" class="hidden" style="margin-top:12px">
-        <h4 class="title">Panel de verificación</h4>
-        <label>Usuario a verificar</label>
-        <input id="verifyUser" placeholder="usuario" />
-        <div class="row">
-          <button id="btnVerify" class="ok">Verificar</button>
-          <button id="btnUnverify" class="warn">Quitar verificado</button>
-        </div>
-      </div>
-    </div>
+/* ================== Utils ================== */
+function timeago(ts){try{const d=Date.now()-ts;const m=Math.floor(d/60000);if(m<1)return"ahora";if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";const dd=Math.floor(h/24);return dd+"d";}catch(e){return ""}}
+function serverRef(id){return db.collection('servers').doc(id);}
+function channelRef(sid,cid){return serverRef(sid).collection('channels').doc(cid);}
 
-    <div class="card">
-      <h3 class="title">Explorar usuarios</h3>
-      <div id="userList"></div>
-    </div>
-  </aside>
-</main>
+/* ================== Auth simple ================== */
+async function register(){
+  const u=$('loginUser').value.trim(); const p=$('loginPass').value.trim();
+  if(!u||!p) return alert('Faltan datos');
+  const doc=await db.collection('users').doc(u).get();
+  if(doc.exists) return alert('Usuario ya existe');
+  await db.collection('users').doc(u).set({
+    pass:p, avatar:'', created:Date.now(), friends:[], bio:''
+  });
+  localStorage.setItem('session',u);
+  start(u);
+}
+async function login(){
+  const u=$('loginUser').value.trim(); const p=$('loginPass').value.trim();
+  const s=await db.collection('users').doc(u).get();
+  if(!s.exists) return alert('No existe usuario');
+  if(s.data().pass!==p) return alert('Contraseña incorrecta');
+  localStorage.setItem('session',u);
+  start(u);
+}
+function logout(){
+  localStorage.removeItem('session'); location.reload();
+}
+function start(u){
+  me=u;
+  $('authBox').classList.add('hidden');
+  $('sessionBox').classList.remove('hidden');
+  $('meName').innerText='@'+u;
+  loadServers();
+  $('composer').classList.remove('hidden');
+  toggleFriends(false);
+}
+window.onload=()=>{
+  const s=localStorage.getItem('session');
+  if(s) start(s);
+}
 
-<!-- Firebase v10 (modular) -->
-<script type="module">
-  // 🔧 Pega tu configuración aquí (usa tu firebaseConfig ANTERIOR)
-  // const firebaseConfig = { apiKey:"", authDomain:"", projectId:"", ... };
-  const firebaseConfig = YOUR_FIREBASE_CONFIG_HERE; // <-- REEMPLAZA ESTO
-
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, onSnapshot, orderBy, serverTimestamp, increment, runTransaction, limit } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
-  import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
-
-  // Inicializa
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-
-  // Utiles DOM
-  const $ = s=>document.querySelector(s);
-  const $$ = s=>document.querySelectorAll(s);
-  const show = (el, yes=true)=> el.classList[yes?'remove':'add']('hidden');
-
-  // Hash SHA-256 para contraseña (no guardes texto plano).
-  async function hash(text){
-    const u = new TextEncoder().encode(text);
-    const h = await crypto.subtle.digest('SHA-256', u);
-    return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-
-  // Sesión basada en Firestore (con Auth anónimo solo para permisos de cliente)
-  let session = JSON.parse(localStorage.getItem('session')||'null');
-  function saveSession(s){ session=s; localStorage.setItem('session', JSON.stringify(s)); renderSession(); }
-  function clearSession(){ localStorage.removeItem('session'); session=null; renderSession(); }
-
-  // Sign-in anónimo para poder usar Firestore con reglas abiertas a auth != null
-  signInAnonymously(auth).catch(console.error);
-
-  // Semilla: crea la cuenta "cracky" si no existe
-  async function seedCracky(){
-    const id = 'cracky';
-    const ref = doc(db,'users', id);
-    const snap = await getDoc(ref);
-    if(!snap.exists()){
-      await setDoc(ref,{
-        username:id,
-        usernameLower:id,
-        displayName:'cracky',
-        role:'owner', // <- etiqueta Owner
-        verified:true,
-        followersCount:0, followingCount:0,
-        avatarUrl:'https://i.imgur.com/ZJ1qQ0S.png',
-        bannerUrl:'https://i.imgur.com/fQx5g6C.jpeg',
-        bio:'Owner del sitio',
-        passwordHash: await hash('16042011'),
-        createdAt: serverTimestamp()
+/* ================== Servers ================== */
+function loadServers(){
+  if(unsubServers) unsubServers();
+  unsubServers = db.collection('servers').where('members','array-contains',me)
+    .orderBy('created','desc').onSnapshot(s=>{
+      const box=$('serverList'); box.innerHTML='';
+      s.forEach(d=>{
+        const sv=d.data();
+        const el=document.createElement('div');
+        el.className='srv'+(currentServer===d.id?' active':'');
+        el.title=sv.name;
+        el.textContent=(sv.name||'SV').slice(0,2).toUpperCase();
+        el.onclick=()=>selectServer(d.id);
+        box.appendChild(el);
       });
-    }
-  }
-
-  // Auth UI (tabs)
-  $$('.tab').forEach(t=>t.addEventListener('click',()=>{
-    $$('.tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    const tab=t.dataset.tab;
-    show($('#loginForm'), tab==='login');
-    show($('#registerForm'), tab==='register');
-  }));
-
-  // Registro
-  $('#btnRegister').addEventListener('click', async ()=>{
-    const u = $('#regUser').value.trim();
-    const p = $('#regPass').value;
-    const avatar = $('#regAvatar').value.trim();
-    const banner = $('#regBanner').value.trim();
-    if(u.length<3 || u.includes(' ')|| p.length<6){ alert('Usuario o contraseña inválidos.'); return; }
-    const id = u.toLowerCase();
-    const ref = doc(db,'users', id);
-    const exist = await getDoc(ref);
-    if(exist.exists()){ alert('Ese usuario ya existe.'); return; }
-    await setDoc(ref,{
-      username:u,
-      usernameLower:id,
-      displayName:u,
-      role:'user', verified:false,
-      followersCount:0, followingCount:0,
-      avatarUrl: avatar||'https://i.imgur.com/1bX5QH6.png',
-      bannerUrl: banner||'https://i.imgur.com/9aGxH0V.jpeg',
-      bio:'',
-      passwordHash: await hash(p),
-      createdAt: serverTimestamp()
     });
-    saveSession({ username:u, usernameLower:id });
+}
+async function openCreateServer(){
+  modal(`
+    <div class="card"><div class="title">Crear servidor</div>
+      <input id="svName" placeholder="Nombre del servidor"/>
+      <div class="row">
+        <button class="primary" onclick="createServer()">Crear</button>
+        <button onclick="closeModal()">Cancelar</button>
+      </div>
+    </div>
+  `);
+}
+async function createServer(){
+  const name=$('svName').value.trim(); if(!name) return;
+  const ref=await db.collection('servers').add({
+    name, owner:me, created:Date.now(), members:[me], invite:genInvite()
   });
-
-  // Login
-  $('#btnLogin').addEventListener('click', async ()=>{
-    const u = $('#loginUser').value.trim();
-    const p = $('#loginPass').value;
-    const id = u.toLowerCase();
-    const ref = doc(db,'users', id);
-    const snap = await getDoc(ref);
-    if(!snap.exists()){ alert('Usuario no encontrado'); return; }
-    const ok = (await hash(p)) === snap.data().passwordHash;
-    if(!ok){ alert('Contraseña incorrecta'); return; }
-    saveSession({ username:snap.data().username, usernameLower:id });
+  await serverRef(ref.id).collection('members').doc(me).set({roles:[],joinedAt:Date.now()});
+  toast('Servidor creado'); closeModal(); selectServer(ref.id);
+}
+function genInvite(){return Math.random().toString(36).slice(2,8).toUpperCase();}
+function copyInvite(){
+  if(!currentServer) return;
+  serverRef(currentServer).get().then(s=>{
+    const inv=s.data().invite; navigator.clipboard.writeText(inv||''); toast('Invitación copiada: '+inv);
   });
-
-  // Render de sesión en header + paneles dependientes
-  function renderSession(){
-    const s = $('#sessionArea');
-    s.innerHTML='';
-    if(!session){
-      s.innerHTML = '<span class="muted">No has iniciado sesión</span>';
-      show($('#composerCard'), false);
-      show($('#communityCreate'), false);
-      show($('#dmStart'), false);
-      show($('#btnEditProfile'), false);
-      show($('#ownerTools'), false);
-      return;
-    }
-    const span = document.createElement('div');
-    span.className='row';
-    span.innerHTML = `<span class="chip">Conectado como <b>@${session.username}</b></span> <button class="ghost" id="btnLogout">Salir</button>`;
-    s.appendChild(span);
-    $('#btnLogout').onclick = ()=>{ clearSession(); };
-    show($('#composerCard'), true);
-    show($('#communityCreate'), true);
-    show($('#dmStart'), true);
-    show($('#btnEditProfile'), true);
-    show($('#ownerTools'), session.usernameLower==='cracky');
-    loadMeProfile();
+}
+function openJoinServer(){
+  modal(`
+    <div class="card"><div class="title">Unirse a servidor</div>
+      <input id="joinCode" placeholder="Código de invitación"/>
+      <div class="row">
+        <button class="primary" onclick="joinServer()">Unirse</button>
+        <button onclick="closeModal()">Cancelar</button>
+      </div>
+    </div>
+  `);
+}
+async function joinServer(){
+  const code=$('joinCode').value.trim().toUpperCase(); if(!code) return;
+  const q=await db.collection('servers').where('invite','==',code).limit(1).get();
+  if(q.empty) return alert('Invitación inválida');
+  const doc=q.docs[0]; const sid=doc.id; const sv=doc.data();
+  if(!(sv.members||[]).includes(me)){
+    await serverRef(sid).update({members:[...sv.members, me]});
+    await serverRef(sid).collection('members').doc(me).set({roles:[],joinedAt:Date.now()});
   }
-
-  // Seguimiento de usuarios (explorar + follow)
-  function verifiedBadge(v){
-    return v ? `<span class="verified" title="Verificado">${checkSvg()}</span>` : '';
-  }
-  function ownerTag(role){
-    return role==='owner' ? `<span class="owner nowrap">Owner</span>` : '';
-  }
-  function checkSvg(){
-    return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M22.25 12c0-1.03-.84-1.87-1.87-1.87h-.09c-.4 0-.78-.16-1.06-.44l-.06-.06c-.28-.28-.44-.66-.44-1.06v-.09c0-1.03-.84-1.87-1.87-1.87h-.09c-.4 0-.78-.16-1.06-.44l-.06-.06c-.28-.28-.44-.66-.44-1.06v-.09C15.25 2.84 14.41 2 13.38 2h-.76c-1.03 0-1.87.84-1.87 1.87v.09c0 .4-.16.78-.44 1.06l-.06.06c-.28.28-.66.44-1.06.44h-.09c-1.03 0-1.87.84-1.87 1.87v.09c0 .4-.16.78-.44 1.06l-.06.06c-.28.28-.66.44-1.06.44h-.09C3.84 10.13 3 10.97 3 12c0 1.03.84 1.87 1.87 1.87h.09c.4 0 .78.16 1.06.44l.06.06c.28.28.44.66.44 1.06v.09c0 1.03.84 1.87 1.87 1.87h.09c.4 0 .78.16 1.06.44l.06.06c.28.28.66.44 1.06.44h.09c1.03 0 1.87-.84 1.87-1.87v-.09c0-.4.16-.78.44-1.06l.06-.06c.28-.28.66-.44 1.06-.44h.09c1.03 0 1.87-.84 1.87-1.87v-.09c0-.4.16-.78.44-1.06l.06-.06c.28-.28.66-.44 1.06-.44h.09c1.03 0 1.87-.84 1.87-1.87Z"/></svg>`;
-  }
-
-  // Feed
-  let feedUnsub=null; let onlyFollowing=false;
-  $('#btnAll').onclick=()=>{ onlyFollowing=false; bindFeed(); };
-  $('#btnOnlyFollowing').onclick=()=>{ onlyFollowing=true; bindFeed(); };
-
-  function postHtml(p){
-    const name = p.authorDisplay||p.author;
-    const v = p.authorVerified;
-    const role = p.authorRole||'user';
-    return `<div class="post">
-      <img class="avatar" src="${p.authorAvatar||''}" alt=""/>
-      <div>
-        <div class="row" style="gap:6px">
-          <b>${name}</b> ${ownerTag(role)} ${verifiedBadge(v)} <span class="muted">@${p.author}</span>
-          <span class="muted">· ${p.createdAt?.toDate? timeAgo(p.createdAt.toDate()) : ''}</span>
+  toast('Unido a '+sv.name); closeModal(); selectServer(sid);
+}
+function selectServer(id){
+  currentServer=id; currentChannel=null;
+  $('srvName').innerText=''; $('srvIdHint').innerText='';
+  $('serverMeta').classList.remove('hidden');
+  $('channelList').classList.remove('hidden');
+  $('topServer').innerText='Servidor';
+  $('topChannel').innerText='—';
+  // server meta
+  serverRef(id).onSnapshot(s=>{
+    const d=s.data(); $('srvName').innerText=d.name; $('topServer').innerText=d.name; $('srvIdHint').innerText='ID: '+s.id;
+  });
+  // channels
+  if(unsubChannels) unsubChannels();
+  unsubChannels = serverRef(id).collection('channels').orderBy('created','asc').onSnapshot(s=>{
+    const box=$('channelsBox'); box.innerHTML='';
+    if(s.empty){ box.innerHTML='<div class="muted">No hay canales</div>'; return; }
+    s.forEach(c=>{
+      const ch=c.data();
+      const row=document.createElement('div');
+      row.className='row';
+      row.innerHTML=`<button style="width:100%;text-align:left" onclick="selectChannel('${c.id}')"># ${ch.name}</button>`;
+      box.appendChild(row);
+    });
+  });
+  // members
+  if(unsubMembers) unsubMembers();
+  unsubMembers = serverRef(id).collection('members').onSnapshot(drawMembers);
+}
+function drawMembers(snap){
+  const box=$('memberList'); box.innerHTML='';
+  if(snap.empty){box.innerHTML='<div class="muted">Sin miembros</div>';return;}
+  snap.forEach(m=>{
+    const md=m.data();
+    const roles=(md.roles||[]).map(r=>`<span class="role" style="background:${r.color||'#18213a'}">${r.name}</span>`).join(' ');
+    box.innerHTML+=`
+      <div class="row" style="justify-content:space-between;margin:6px 0">
+        <div class="row">
+          <img class="avatar" src="${md.avatar||''}" onerror="this.src='';">
+          <div>
+            <div><b>${m.id}</b></div>
+            <div class="muted">${roles||'—'}</div>
+          </div>
         </div>
-        <div>${escapeHtml(p.text||'')}</div>
-        ${p.imageUrl? `<img class="media" src="${p.imageUrl}" alt="">` : ''}
+        <div class="row">
+          <button onclick="openAssignRole('${m.id}')">Roles</button>
+          <button onclick="openDM('${m.id}')">DM</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* ================== Canales y chat ================== */
+function openAddChannel(){
+  if(!currentServer) return;
+  modal(`
+    <div class="card"><div class="title">Crear canal</div>
+      <input id="chName" placeholder="nombre-del-canal"/>
+      <div class="row">
+        <button class="primary" onclick="createChannel()">Crear</button>
+        <button onclick="closeModal()">Cancelar</button>
+      </div>
+    </div>
+  `);
+}
+async function createChannel(){
+  const name=$('chName').value.trim(); if(!name) return;
+  await serverRef(currentServer).collection('channels').add({name, created:Date.now(), type:'text'});
+  toast('Canal creado'); closeModal();
+}
+function selectChannel(cid){
+  currentChannel=cid;
+  $('topChannel').innerText='#';
+  channelRef(currentServer,cid).get().then(s=> $('topChannel').innerText = '# '+(s.data().name||'canal'));
+  if(unsubMessages) unsubMessages();
+  unsubMessages = channelRef(currentServer,cid).collection('messages').orderBy('ts','asc').limit(400)
+    .onSnapshot(s=>{
+      const box=$('messageList'); box.innerHTML='';
+      s.forEach(m=>{
+        const d=m.data();
+        const mine=d.from===me?' me':'';
+        box.innerHTML += `
+          <div class="msg${mine}">
+            <div class="muted" style="font-size:12px">${d.from} · ${timeago(d.ts)}</div>
+            <div>${(d.text||'').replace(/</g,'&lt;')}</div>
+            ${d.image?`<img src="${d.image}" style="max-width:100%;border-radius:10px;margin-top:6px;border:1px solid var(--line)">`:''}
+          </div>
+        `;
+      });
+      box.scrollTop=box.scrollHeight;
+    });
+}
+async function sendMessage(){
+  if(!me||!currentServer||!currentChannel) return;
+  const t=$('msgText').value.trim(); if(!t) return;
+  await channelRef(currentServer,currentChannel).collection('messages').add({from:me,text:t,ts:Date.now()});
+  $('msgText').value='';
+}
+$('msgText').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendMessage();}});
+
+/* ================== Roles ================== */
+function openRoles(){
+  if(!currentServer) return;
+  modal(`
+    <div class="card"><div class="title">Roles del servidor</div>
+      <div class="row"><input id="roleName" placeholder="Nombre del rol"><input id="roleColor" placeholder="#4466ff (color)"></div>
+      <div class="row">
+        <button class="success" onclick="addRole()">Crear rol</button>
+        <button onclick="closeModal()">Cerrar</button>
+      </div>
+      <div id="roleList" class="muted" style="margin-top:8px">Cargando…</div>
+    </div>
+  `);
+  serverRef(currentServer).collection('roles').orderBy('name','asc').onSnapshot(s=>{
+    const box=$('roleList'); box.innerHTML='';
+    if(s.empty){box.innerHTML='No hay roles';return;}
+    s.forEach(r=>{
+      const d=r.data();
+      box.innerHTML += `<div class="row"><span class="role" style="background:${d.color||'#18213a'}">${d.name}</span> <span class="muted">(${r.id})</span></div>`;
+    });
+  });
+}
+async function addRole(){
+  const name=$('roleName').value.trim(); const color=$('roleColor').value.trim()||'#2a3d7a';
+  if(!name) return;
+  await serverRef(currentServer).collection('roles').add({name,color});
+  $('roleName').value=''; $('roleColor').value='';
+  toast('Rol creado');
+}
+function openAssignRole(userId){
+  if(!currentServer) return;
+  modal(`
+    <div class="card"><div class="title">Asignar rol a ${userId}</div>
+      <select id="assignSelect"></select>
+      <div class="row">
+        <button class="primary" onclick="assignRole('${userId}')">Asignar</button>
+        <button class="warn" onclick="clearRoles('${userId}')">Quitar todos</button>
+        <button onclick="closeModal()">Cerrar</button>
+      </div>
+    </div>
+  `);
+  serverRef(currentServer).collection('roles').orderBy('name','asc').get().then(s=>{
+    const sel=$('assignSelect');
+    s.forEach(r=>{
+      const opt=document.createElement('option');
+      opt.value=JSON.stringify({name:r.data().name,color:r.data().color});
+      opt.textContent=r.data().name;
+      sel.appendChild(opt);
+    });
+  });
+}
+async function assignRole(userId){
+  const role=JSON.parse($('assignSelect').value);
+  const ref=serverRef(currentServer).collection('members').doc(userId);
+  const snap=await ref.get(); const cur=snap.data()||{};
+  const roles=cur.roles||[]; roles.push(role);
+  await ref.set({...cur, roles},{merge:true});
+  toast('Rol asignado'); closeModal();
+}
+async function clearRoles(userId){
+  await serverRef(currentServer).collection('members').doc(userId).set({roles:[]},{merge:true});
+  toast('Roles borrados'); closeModal();
+}
+
+/* ================== Amigos y DMs ================== */
+let friendsOpen=false;
+function toggleFriends(force){
+  const el=$('friendsPanel');
+  if(typeof force==='boolean'){friendsOpen=force;} else {friendsOpen=!friendsOpen;}
+  el.classList.toggle('hidden', !friendsOpen);
+  if(friendsOpen) loadFriendsUI();
+}
+function openDM(userId){
+  toggleFriends(true);
+  // abre chat con usuario
+  startDM(userId);
+}
+function chatId(a,b){return [a,b].sort().join('_');}
+let dmUnsub=null, currentDM=null;
+function startDM(user){
+  if(me===user) return;
+  currentDM=user;
+  const id=chatId(me,user);
+  const box=document.createElement('div');
+  box.className='card';
+  box.innerHTML=`
+    <div class="title">Chat con ${user}</div>
+    <div id="dmList" style="max-height:40vh;overflow:auto;margin:6px 0"></div>
+    <div class="row"><input id="dmText" placeholder="Mensaje"><button class="primary" onclick="sendDM()">Enviar</button></div>
+  `;
+  $('friendsPanel').appendChild(box);
+  if(dmUnsub) dmUnsub();
+  dmUnsub = db.collection('chats').doc(id).collection('messages').orderBy('ts','asc').limit(300).onSnapshot(s=>{
+    const L=box.querySelector('#dmList'); L.innerHTML='';
+    s.forEach(m=>{
+      const d=m.data();
+      L.innerHTML+=`<div class="msg ${d.from===me?'me':''}"><div class="muted" style="font-size:12px">${d.from} · ${timeago(d.ts)}</div>${(d.text||'')}</div>`;
+    });
+    L.scrollTop=L.scrollHeight;
+  });
+}
+async function sendDM(){
+  if(!currentDM) return;
+  const t=document.getElementById('dmText').value.trim(); if(!t) return;
+  await db.collection('chats').doc(chatId(me,currentDM)).collection('messages').add({from:me,text:t,ts:Date.now()});
+  document.getElementById('dmText').value='';
+}
+async function sendFriendReq(){
+  const target=$('searchUser').value.trim(); if(!target||target===me) return;
+  const u=await db.collection('users').doc(target).get(); if(!u.exists) return alert('No existe');
+  const id=`${target}_${me}`;
+  await db.collection('friendRequests').doc(id).set({to:target,from:me,ts:Date.now(),status:'pending'});
+  toast('Solicitud enviada');
+  loadFriendsUI();
+}
+function loadFriendsUI(){
+  // Inbox
+  db.collection('friendRequests').where('to','==',me).where('status','==','pending').onSnapshot(s=>{
+    const box=$('reqInbox'); box.innerHTML='';
+    if(s.empty){box.innerHTML='Sin solicitudes';return;}
+    s.forEach(d=>{
+      const r=d.data();
+      box.innerHTML+=`
+        <div class="row" style="justify-content:space-between">
+          <div>${r.from}</div>
+          <div class="row">
+            <button class="success" onclick="acceptReq('${d.id}','${r.from}')">Aceptar</button>
+            <button class="danger" onclick="declineReq('${d.id}')">Rechazar</button>
+          </div>
+        </div>`;
+    });
+  });
+  // Outbox
+  db.collection('friendRequests').where('from','==',me).onSnapshot(s=>{
+    const box=$('reqOut'); box.innerHTML='';
+    if(s.empty){box.innerHTML='No has enviado solicitudes';return;}
+    s.forEach(d=>{
+      const r=d.data();
+      box.innerHTML+=`<div>${r.to} · <span class="muted">${r.status}</span></div>`;
+    });
+  });
+  // Friends list
+  db.collection('users').doc(me).collection('friends').onSnapshot(s=>{
+    const box=$('friendsList'); box.innerHTML='';
+    if(s.empty){box.innerHTML='Aún no tienes amigos';return;}
+    s.forEach(f=>{
+      const fid=f.id;
+      box.innerHTML+=`
+        <div class="row" style="justify-content:space-between">
+          <div>${fid}</div>
+          <div class="row">
+            <button onclick="openDM('${fid}')">DM</button>
+          </div>
+        </div>`;
+    });
+  });
+}
+async function acceptReq(reqId, from){
+  await db.collection('users').doc(me).collection('friends').doc(from).set({since:Date.now()});
+  await db.collection('users').doc(from).collection('friends').doc(me).set({since:Date.now()});
+  await db.collection('friendRequests').doc(reqId).update({status:'accepted'});
+  toast('Ahora son amigos');
+}
+async function declineReq(reqId){
+  await db.collection('friendRequests').doc(reqId).update({status:'declined'});
+  toast('Solicitud rechazada');
+}
+
+/* ================== Roles helpers: asignar muestra avatar ================== */
+serverRef; // (no-op linter)
+
+/* ================== Perfil básico (avatar opcional) ================== */
+db.collection('users').doc; // hint
+
+/* ================== Modales ================== */
+function modal(html){
+  $('modalRoot').innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99" onclick="closeModal(event)">
+      <div onclick="event.stopPropagation()" style="width:min(520px,92vw)">
+        ${html}
       </div>
     </div>`;
-  }
+}
+function closeModal(e){$('modalRoot').innerHTML='';}
 
-  function timeAgo(d){
-    const sec = Math.floor((Date.now()-d.getTime())/1000);
-    if(sec<60) return sec+"s"; const m=Math.floor(sec/60); if(m<60) return m+"m"; const h=Math.floor(m/60); if(h<24) return h+"h"; const dd=Math.floor(h/24); if(dd<7) return dd+"d"; return d.toLocaleDateString();
-  }
-  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+/* ================== Teclas rápidas ================== */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeModal();
+});
 
-  async function bindFeed(){
-    if(feedUnsub) feedUnsub();
-    let qy;
-    if(onlyFollowing && session){
-      // obtener a quién sigo
-      const my = await getDoc(doc(db,'users', session.usernameLower));
-      const following = (my.data()?.followingList)||[];
-      if(following.length===0){ $('#feed').innerHTML='<div class="muted">No sigues a nadie aún.</div>'; return; }
-      qy = query(collection(db,'posts'), where('authorLower','in', following.slice(0,10)), orderBy('createdAt','desc'), limit(100));
-      // Nota: Firestore "in" admite hasta 10 elementos; para más, usar paginación o dividir.
-    } else {
-      qy = query(collection(db,'posts'), orderBy('createdAt','desc'), limit(100));
-    }
-    feedUnsub = onSnapshot(qy, (ss)=>{
-      const html = ss.docs.map(d=>postHtml(d.data())).join('');
-      $('#feed').innerHTML = html || '<div class="muted">Aún no hay publicaciones.</div>';
-    });
-  }
+/* ================== Avatar en miembros ================== */
+async function ensureMemberDocAvatar(serverId,userId){
+  const u=await db.collection('users').doc(userId).get();
+  await serverRef(serverId).collection('members').doc(userId).set({avatar:u.data()?.avatar||''},{merge:true});
+}
 
-  // Publicar
-  $('#btnPublish').addEventListener('click', async ()=>{
-    if(!session) return alert('Inicia sesión');
-    const text = $('#postText').value.trim();
-    const img = $('#postImage').value.trim();
-    if(!text && !img){ alert('Escribe algo o agrega imagen.'); return; }
-    const me = (await getDoc(doc(db,'users', session.usernameLower))).data();
-    await addDoc(collection(db,'posts'),{
-      author: me.username,
-      authorLower: me.usernameLower,
-      authorDisplay: me.displayName,
-      authorAvatar: me.avatarUrl,
-      authorVerified: !!me.verified,
-      authorRole: me.role||'user',
-      text, imageUrl: img||null, createdAt: serverTimestamp()
-    });
-    $('#postText').value=''; $('#postImage').value='';
-  });
-
-  // Perfil activo (propio o de otro al hacer click en lista)
-  let viewing = null; // usernameLower
-  async function showProfile(userLower){
-    const snap = await getDoc(doc(db,'users', userLower));
-    if(!snap.exists()) return;
-    viewing = userLower;
-    const u = snap.data();
-    $('#pBanner').src = u.bannerUrl||'';
-    $('#pAvatar').src = u.avatarUrl||'';
-    $('#pName').innerHTML = `${escapeHtml(u.displayName||u.username)} ${ownerTag(u.role)} ${verifiedBadge(u.verified)}`;
-    $('#pUser').textContent = u.username;
-    $('#pFollowers').textContent = u.followersCount||0;
-    $('#pBio').textContent = u.bio||'';
-
-    // botones seguir/editar
-    if(session){
-      if(session.usernameLower===userLower){
-        show($('#btnEditProfile'), true);
-        show($('#btnFollow'), false); show($('#btnUnfollow'), false);
-      } else {
-        show($('#btnEditProfile'), false);
-        // ¿lo sigo?
-        const me = await getDoc(doc(db,'users', session.usernameLower));
-        const following = me.data()?.followingList||[];
-        const follows = following.includes(userLower);
-        show($('#btnFollow'), !follows);
-        show($('#btnUnfollow'), follows);
-      }
-    }
-  }
-
-  // Explorar usuarios (lista simple)
-  function bindUsers(){
-    onSnapshot(query(collection(db,'users'), orderBy('usernameLower')), (ss)=>{
-      const list = ss.docs.map(d=>({id:d.id,...d.data()}));
-      $('#userList').innerHTML = list.map(u=>
-        `<div class="between" style="padding:6px 0;border-bottom:1px solid #22303c">
-          <div class="row">
-            <img class="avatar" src="${u.avatarUrl||''}" alt=""/>
-            <div style="margin-left:6px">
-              <div><b>${escapeHtml(u.displayName||u.username)}</b> ${ownerTag(u.role)} ${verifiedBadge(u.verified)}</div>
-              <div class="muted">@${u.username}</div>
-            </div>
-          </div>
-          <button class="ghost" data-open="${u.usernameLower}">Ver</button>
-        </div>`
-      ).join('');
-      $$('#userList [data-open]').forEach(b=> b.addEventListener('click',()=> showProfile(b.dataset.open)));
-
-      // si no se está viendo un perfil aún, muestra el mío si hay sesión o el primero
-      if(!viewing){
-        if(session) showProfile(session.usernameLower); else if(list[0]) showProfile(list[0].id);
-      }
-    });
-  }
-
-  // Follow/Unfollow
-  $('#btnFollow').onclick = ()=> toggleFollow(true);
-  $('#btnUnfollow').onclick = ()=> toggleFollow(false);
-
-  async function toggleFollow(follow){
-    if(!session||!viewing||session.usernameLower===viewing) return;
-    const meRef = doc(db,'users', session.usernameLower);
-    const otherRef = doc(db,'users', viewing);
-    await runTransaction(db, async (tx)=>{
-      const meSnap = await tx.get(meRef);
-      const otherSnap = await tx.get(otherRef);
-      if(!meSnap.exists()||!otherSnap.exists()) throw new Error('User missing');
-      const me = meSnap.data();
-      const following = new Set(me.followingList||[]);
-      if(follow) following.add(viewing); else following.delete(viewing);
-      tx.update(meRef,{ followingList:[...following], followingCount:(following.size||0) });
-      const delta = follow?1:-1;
-      tx.update(otherRef,{ followersCount: increment(delta) });
-    });
-    showProfile(viewing);
-    bindFeed();
-  }
-
-  // Editar perfil
-  $('#btnEditProfile').onclick = async ()=>{
-    if(!session) return; show($('#editProfile'), true);
-    const me = (await getDoc(doc(db,'users', session.usernameLower))).data();
-    $('#editDisplay').value = me.displayName||me.username;
-    $('#editBio').value = me.bio||'';
-    $('#editAvatar').value = me.avatarUrl||'';
-    $('#editBanner').value = me.bannerUrl||'';
-  };
-  $('#btnCancelProfile').onclick = ()=> show($('#editProfile'), false);
-  $('#btnSaveProfile').onclick = async ()=>{
-    const d = {
-      displayName: $('#editDisplay').value.trim(),
-      bio: $('#editBio').value.trim(),
-      avatarUrl: $('#editAvatar').value.trim(),
-      bannerUrl: $('#editBanner').value.trim()
-    };
-    await updateDoc(doc(db,'users', session.usernameLower), d);
-    show($('#editProfile'), false);
-    showProfile(session.usernameLower);
-  };
-
-  // Herramientas de verificación (solo cracky)
-  $('#btnVerify').onclick = ()=> setVerify(true);
-  $('#btnUnverify').onclick = ()=> setVerify(false);
-  async function setVerify(val){
-    if(!session || session.usernameLower!=='cracky') return alert('Solo el Owner');
-    const u = $('#verifyUser').value.trim().toLowerCase();
-    if(!u) return; const ref = doc(db,'users', u); const s = await getDoc(ref);
-    if(!s.exists()) return alert('Usuario no existe');
-    await updateDoc(ref,{ verified: !!val });
-    if(viewing===u) showProfile(u);
-  }
-
-  // Comunidades (crear + listar + chat)
-  $('#btnCreateCommunity').onclick = async ()=>{
-    if(!session) return;
-    const name = $('#commName').value.trim();
-    if(!name) return alert('Ponle nombre');
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-    const ref = doc(db,'communities', slug);
-    const snap = await getDoc(ref);
-    if(snap.exists()) return alert('Ya existe');
-    await setDoc(ref,{
-      slug, name, description: $('#commDesc').value.trim(),
-      bannerUrl: $('#commBanner').value.trim()||'',
-      owner: session.usernameLower,
-      createdAt: serverTimestamp()
-    });
-    await addDoc(collection(db,'communityMembers'),{ comm: slug, user: session.usernameLower, joinedAt: serverTimestamp() });
-  };
-
-  // listar comunidades
-  onSnapshot(query(collection(db,'communities'), orderBy('slug')), async (ss)=>{
-    const items = await Promise.all(ss.docs.map(async d=>{
-      const c = d.data();
-      // contar miembros rápido (no escalable, pero ok demo)
-      const members = await (await import('https://cdn.skypack.dev/idb-keyval?min')).get('members:'+c.slug) || null;
-      return {id:d.id, ...c, membersCached:members};
-    }));
-    $('#communityList').innerHTML = items.map(c=>
-      `<div class="card" style="padding:10px">
-        <div class="between">
-          <div class="row">
-            <img class="avatar" style="width:36px;height:36px" src="${c.bannerUrl||'https://i.imgur.com/9aGxH0V.jpeg'}"/>
-            <div style="margin-left:6px">
-              <div><b>${escapeHtml(c.name)}</b></div>
-              <div class="muted">/${c.slug}</div>
-            </div>
-          </div>
-          <div class="row">
-            <button class="ghost" data-open-comm="${c.slug}">Abrir</button>
-          </div>
-        </div>
-        <div id="comm-${c.slug}" class="hidden" style="margin-top:8px">
-          <div id="commChat-${c.slug}" class="dm" style="max-height:200px;overflow:auto"></div>
-          <div class="row" style="margin-top:6px">
-            <input id="commInput-${c.slug}" placeholder="Mensaje a la comunidad"/>
-            <button data-send-comm="${c.slug}">Enviar</button>
-          </div>
-        </div>
-      </div>`
-    ).join('');
-    $$('#communityList [data-open-comm]').forEach(b=> b.addEventListener('click',()=> toggleCommunity(b.dataset.openComm)));
-    $$('#communityList [data-send-comm]').forEach(b=> b.addEventListener('click',()=> sendCommunityMsg(b.dataset.sendComm)));
-  });
-
-  const commUnsubs = new Map();
-  function toggleCommunity(slug){
-    const box = $('#comm-'+slug); box.classList.toggle('hidden');
-    if(!box.classList.contains('hidden')) bindCommunity(slug);
-    else {
-      const u = commUnsubs.get(slug); if(u){u(); commUnsubs.delete(slug);} }
-  }
-  function bindCommunity(slug){
-    const chat = $('#commChat-'+slug);
-    const qy = query(collection(db,'communities', slug, 'messages'), orderBy('createdAt','asc'));
-    const unsub = onSnapshot(qy,(ss)=>{
-      chat.innerHTML = ss.docs.map(d=>{
-        const m = d.data();
-        return `<div class="msg ${session && m.sender===session.usernameLower?'you':''}"><b>@${m.sender}</b>: ${escapeHtml(m.text)}</div>`;
-      }).join('');
-      chat.scrollTop = chat.scrollHeight;
-    });
-    commUnsubs.set(slug, unsub);
-  }
-  async function sendCommunityMsg(slug){
-    if(!session) return alert('Inicia sesión');
-    const inp = $('#commInput-'+slug); const text = inp.value.trim(); if(!text) return;
-    await addDoc(collection(db,'communities', slug, 'messages'),{
-      sender: session.usernameLower, text, createdAt: serverTimestamp()
-    });
-    inp.value='';
-  }
-
-  // DM (threads + mensajes)
-  function threadId(a,b){ return [a,b].sort().join('__'); }
-  $('#btnSendDM').onclick = async ()=>{
-    if(!session) return; const to = $('#dmTo').value.trim().toLowerCase();
-    if(!to||to===session.usernameLower) return; const text = $('#dmText').value.trim(); if(!text) return;
-    await sendDM(to, text); $('#dmText').value=''; openDM(to);
-  };
-  $('#btnCloseDM').onclick = ()=>{ show($('#dmThread'), false); };
-  $('#btnSendDMInline').onclick = async ()=>{
-    const to = $('#dmWith').dataset.u; const text = $('#dmInputMsg').value.trim(); if(!text) return;
-    await sendDM(to, text); $('#dmInputMsg').value='';
-  };
-
-  async function sendDM(to, text){
-    // asegura que existe el hilo
-    const tid = threadId(session.usernameLower, to);
-    await setDoc(doc(db,'dmThreads', tid),{ users:[session.usernameLower, to], updatedAt: serverTimestamp() }, {merge:true});
-    await addDoc(collection(db,'dmThreads', tid, 'messages'),{ sender: session.usernameLower, text, createdAt: serverTimestamp() });
-  }
-
-  function bindDMList(){
-    if(!session){ $('#dmList').innerHTML=''; return; }
-    onSnapshot(query(collection(db,'dmThreads'), where('users','array-contains', session.usernameLower), orderBy('updatedAt','desc')), (ss)=>{
-      $('#dmList').innerHTML = ss.docs.map(d=>{
-        const others = (d.data().users||[]).filter(u=>u!==session.usernameLower);
-        const withU = others[0]||'?';
-        return `<div class="between" style="padding:4px 0;border-bottom:1px solid #22303c">
-          <div>@${withU}</div>
-          <button class="ghost" data-open-dm="${withU}">Abrir</button>
-        </div>`
-      }).join('');
-      $$('#dmList [data-open-dm]').forEach(b=> b.addEventListener('click',()=> openDM(b.dataset.openDm)));
-    });
-  }
-
-  function openDM(u){
-    show($('#dmThread'), true);
-    $('#dmWith').textContent='@'+u; $('#dmWith').dataset.u=u;
-    const list = $('#dmMessages');
-    const tid = threadId(session.usernameLower, u);
-    onSnapshot(query(collection(db,'dmThreads', tid, 'messages'), orderBy('createdAt','asc')),(ss)=>{
-      list.innerHTML = ss.docs.map(d=>{
-        const m = d.data();
-        return `<div class="msg ${m.sender===session.usernameLower?'you':''}"><span class="muted">@${m.sender}</span> ${escapeHtml(m.text)}</div>`;
-      }).join('');
-      list.scrollTop = list.scrollHeight;
-    });
-  }
-
-  // Cargar datos de mi perfil (para avatar del composer)
-  async function loadMeProfile(){
-    if(!session) return; const me = (await getDoc(doc(db,'users', session.usernameLower))).data();
-    $('#meAvatar').src = me?.avatarUrl||'';
-    showProfile(session.usernameLower);
-  }
-
-  // Inicialización
-  await seedCracky();
-  renderSession();
-  bindUsers();
-  bindFeed();
-  bindDMList();
-
-  // Seguridad (recomendado): configura Reglas de Firestore para permitir lectura y escritura sólo a auth != null
-  // y validar campos. Este demo usa Auth anónimo + validaciones básicas en cliente. Refuerza reglas en tu proyecto.
+/* ================== Extra: set avatar/bio simples ================== */
+(function attachProfileQuick(){
+  // peq. panel en sessionBox
+  const box=document.createElement('div');
+  box.className='card';
+  box.innerHTML=`
+    <div class="title">Perfil</div>
+    <input id="pfAvatar" placeholder="URL avatar (opcional)"/>
+    <input id="pfBio" placeholder="Bio (opcional)"/>
+    <button onclick="saveProfile()">Guardar</button>
+  `;
+  document.getElementById('channels').appendChild(box);
+})();
+async function saveProfile(){
+  const a=$('pfAvatar').value.trim(); const b=$('pfBio').value.trim();
+  if(!me) return;
+  await db.collection('users').doc(me).set({avatar:a,bio:b},{merge:true});
+  if(currentServer) await ensureMemberDocAvatar(currentServer,me);
+  toast('Perfil actualizado');
+}
 </script>
 </body>
 </html>
