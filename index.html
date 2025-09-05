@@ -1,566 +1,679 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MiniTwitter • Fire</title>
-<style>
-  :root{--bg:#0f172a;--panel:#0b1220;--soft:#111827;--text:#e5e7eb;--muted:#94a3b8;--line:#203048;--accent:#1d4ed8;--owner:#ef4444}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;display:flex;min-height:100vh}
-  #sidebar{width:260px;background:var(--panel);border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px}
-  #brand{font-weight:800;font-size:20px}
-  .btn{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--text);cursor:pointer;text-align:left}
-  .btn:hover{background:#13203a}
-  #content{flex:1;display:flex;gap:16px;padding:16px}
-  .col{flex:1}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-  .hidden{display:none}
-  input,textarea,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:#091226;color:var(--text);margin:6px 0}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .post{display:grid;grid-template-columns:48px 1fr;gap:10px;border-bottom:1px solid var(--line);padding:12px 0}
-  .avatar{width:48px;height:48px;border-radius:999px;object-fit:cover;border:1px solid var(--line);background:#0a1224}
-  .banner{width:100%;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#0a1224}
-  .post-img{border-radius:12px;border:1px solid var(--line);max-height:420px;width:100%;object-fit:cover}
-  .muted{color:var(--muted)}
-  .name{font-weight:700}
-  .check{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;background:#1d9bf0;color:#fff;font-size:12px;margin-left:6px}
-  .owner{display:inline-block;margin-left:6px;background:var(--owner);color:#fff;padding:0 8px;border-radius:999px;font-size:12px}
-  .tabbar{display:flex;gap:8px;margin:8px 0}
-  .tab{padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#0e172d;cursor:pointer}
-  .list{max-height:60vh;overflow:auto}
-  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
-  /* Toasts */
-  #toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999}
-  .toast{background:#1f2937;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
-</style>
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TWOTTER - ESP:Z</title>
+  <style>
+    :root{
+      --bg:#0f1419; --card:#151b22; --muted:#9aa4af; --text:#e6edf3; --accent:#1d9bf0; --ok:#10b981; --warn:#f59e0b; --err:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    a{color:var(--accent)}
+    .container{max-width:1100px;margin:0 auto;padding:12px}
+    header{position:sticky;top:0;background:rgba(15,20,25,.9);backdrop-filter:saturate(1.2) blur(8px);z-index:50;border-bottom:1px solid #222}
+    header .row{display:flex;align-items:center;gap:10px;padding:8px 0}
+    .logo{font-weight:800;letter-spacing:.3px}
+    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #26313d;padding:2px 8px;border-radius:999px;font-size:12px;color:var(--muted)}
+    .app{display:grid;grid-template-columns:280px 1fr 330px;gap:12px;margin-top:12px}
+    @media (max-width:1100px){.app{grid-template-columns:1fr}.right,.left{display:none}}
+    .card{background:var(--card);border:1px solid #22303c;border-radius:16px;padding:12px}
+    .title{font-weight:700;margin:0 0 8px}
+    .muted{color:var(--muted)}
+    input,textarea,select{width:100%;background:#0b0f14;color:var(--text);border:1px solid #22303c;border-radius:12px;padding:10px;margin:6px 0 10px;font:inherit}
+    textarea{min-height:80px;resize:vertical}
+    button{background:var(--accent);border:0;color:white;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #22303c;color:var(--text)}
+    button.warn{background:var(--warn)}
+    button.ok{background:var(--ok)}
+    button.err{background:var(--err)}
+    .row{display:flex;gap:8px;align-items:center}
+    .between{display:flex;align-items:center;justify-content:space-between}
+    .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;border:1px solid #22303c;background:#0b0f14}
+    .banner{width:100%;height:120px;object-fit:cover;border-radius:12px;border:1px solid #22303c;background:#0b0f14}
+    .post{display:grid;grid-template-columns:48px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #22303c}
+    .post img.media{max-width:100%;border-radius:12px;border:1px solid #22303c;margin-top:6px}
+    .chip{display:inline-flex;align-items:center;gap:6px;background:#0b0f14;border:1px solid #22303c;border-radius:999px;padding:2px 8px;font-size:12px}
+    .owner{color:#ff5a5a;font-weight:800}
+    .verified{display:inline-flex;align-items:center;gap:4px}
+    .verified svg{width:16px;height:16px}
+    .list{display:flex;flex-direction:column;gap:4px}
+    .pillbar{display:flex;gap:6px;flex-wrap:wrap}
+    .hidden{display:none !important}
+    .tabbar{display:flex;gap:8px;margin-bottom:8px}
+    .tab{padding:6px 10px;border:1px solid #22303c;border-radius:10px;cursor:pointer}
+    .tab.active{background:#0b0f14}
+    .dm{padding:8px;border-radius:10px;border:1px solid #22303c}
+    .msg{margin:6px 0}
+    .msg.you{ text-align:right }
+    .nowrap{white-space:nowrap}
+  </style>
 </head>
 <body>
-  <aside id="sidebar">
-    <div id="brand">MiniTwitter 🔥</div>
-
-    <div id="authBox" class="card">
-      <b>Acceso</b>
-      <input id="user" placeholder="Usuario"/>
-      <input id="pass" type="password" placeholder="Contraseña"/>
-      <div class="row">
-        <button class="btn" onclick="register()">Registrar</button>
-        <button class="btn" onclick="login()">Login</button>
-      </div>
+<header>
+  <div class="container row between">
+    <div class="row">
+      <div class="logo">Twotter🔨</div>
+      <div class="badge">Realtime • Firebase • Comunidades • DM</div>
     </div>
+    <div class="row" id="sessionArea"></div>
+  </div>
+</header>
 
-    <div id="sessionBox" class="card hidden">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <span class="name" id="meName">—</span>
-          <span id="meCheck" class="check hidden">✓</span>
-          <span id="meOwner" class="owner hidden">Owner</span>
+<main class="container app">
+  <aside class="left">
+    <div class="card">
+      <h3 class="title">Cuenta</h3>
+      <div id="authArea">
+        <!-- Login / Register -->
+        <div id="authForms">
+          <div class="tabbar">
+            <div class="tab active" data-tab="login">Iniciar sesión</div>
+            <div class="tab" data-tab="register">Registrarse</div>
+          </div>
+          <div id="loginForm">
+            <label>Usuario</label>
+            <input id="loginUser" placeholder="usuario" />
+            <label>Contraseña</label>
+            <input id="loginPass" type="password" placeholder="••••••" />
+            <button id="btnLogin">Entrar</button>
+          </div>
+          <div id="registerForm" class="hidden">
+            <label>Usuario</label>
+            <input id="regUser" placeholder="min 3, sin espacios" />
+            <label>Contraseña</label>
+            <input id="regPass" type="password" placeholder="min 6" />
+            <label>Avatar (URL de imagen)</label>
+            <input id="regAvatar" placeholder="https://...jpg" />
+            <label>Banner (URL de imagen)</label>
+            <input id="regBanner" placeholder="https://...jpg" />
+            <button id="btnRegister">Crear cuenta</button>
+          </div>
         </div>
-        <button class="btn" onclick="logout()">Cerrar sesión</button>
       </div>
-      <div class="muted" id="meStats">0 siguiendo · 0 seguidores</div>
     </div>
 
-    <button class="btn" onclick="showHome()">Inicio</button>
-    <button class="btn" onclick="showProfile()">Perfil</button>
-    <button class="btn" onclick="showCommunities()">Comunidades</button>
-    <button class="btn" onclick="showMessages()">Mensajes</button>
-    <button class="btn" onclick="showSearch()">Buscar</button>
-
-    <div id="verifyPanel" class="card hidden">
-      <b>Verificar usuario (solo cracky)</b>
-      <input id="verifyTarget" placeholder="Usuario a verificar"/>
-      <div class="row">
-        <button class="btn" onclick="setVerify(true)">Verificar ✓</button>
-        <button class="btn" onclick="setVerify(false)">Quitar ✓</button>
+    <div class="card">
+      <h3 class="title">Comunidades</h3>
+      <div id="communityCreate" class="hidden">
+        <label>Nombre</label>
+        <input id="commName" placeholder="Mi comunidad" />
+        <label>Descripción</label>
+        <textarea id="commDesc" placeholder="De qué trata"></textarea>
+        <label>Banner (URL de imagen)</label>
+        <input id="commBanner" placeholder="https://...jpg" />
+        <button id="btnCreateCommunity">Crear comunidad</button>
       </div>
+      <div class="list" id="communityList"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="title">Mensajes privados</h3>
+      <div id="dmStart" class="hidden">
+        <label>Enviar a (usuario)</label>
+        <input id="dmTo" placeholder="usuario" />
+        <label>Mensaje</label>
+        <input id="dmText" placeholder="hola 👋" />
+        <button id="btnSendDM">Enviar</button>
+      </div>
+      <div id="dmThread" class="hidden">
+        <div class="between"><div><b>Chat con</b> <span id="dmWith"></span></div><button class="ghost" id="btnCloseDM">Cerrar</button></div>
+        <div id="dmMessages" style="max-height:260px;overflow:auto;margin:8px 0"></div>
+        <div class="row">
+          <input id="dmInputMsg" placeholder="Escribe..." />
+          <button id="btnSendDMInline">Enviar</button>
+        </div>
+      </div>
+      <div class="list" id="dmList"></div>
     </div>
   </aside>
 
-  <main id="content">
-    <div class="col" id="leftCol">
-      <!-- Secciones dinámicas -->
-    </div>
-    <div class="col" id="rightCol">
-      <div class="card">
-        <b>Quién seguir</b>
-        <div id="whoToFollow" class="list muted">Inicia sesión…</div>
-      </div>
-    </div>
-  </main>
-
-  <div id="toasts"></div>
-
-<script>
-/* ===== Firebase ===== */
-const firebaseConfig = {
-  apiKey: "AIzaSyBwj_as6pb5Bg81F9Cl9VWTKkekMM9Exfk",
-  authDomain: "pekora-forum.firebaseapp.com",
-  projectId: "pekora-forum"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-/* ===== State & Utils ===== */
-let me = null; // username string
-let unsubFeed = null, unsubProfile = null, unsubFollowCounts = null, unsubChat = null, unsubCommunity = null;
-
-function $(id){return document.getElementById(id);}
-function toast(msg){const t=document.createElement("div");t.className="toast";t.innerText=msg;$("toasts").appendChild(t);setTimeout(()=>t.remove(),3500);}
-function docUser(u){return db.collection("users").doc(u);}
-async function getUser(u){const s=await docUser(u).get();return s.exists?s.data():null;}
-function timeago(ts){try{const d=Date.now()-ts;const m=Math.floor(d/60000);if(m<1)return"ahora";if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";const dd=Math.floor(h/24);return dd+"d";}catch(e){return ""}}
-
-/* ===== Auth ===== */
-async function register(){
-  const u=$("user").value.trim(); const p=$("pass").value.trim();
-  if(!u||!p) return alert("Faltan datos");
-  if((await docUser(u).get()).exists) return alert("Usuario ya existe");
-  await docUser(u).set({
-    pass:p, name:u, bio:"", avatar:"", banner:"",
-    verified: (u==="cracky"), // cracky comienza verificado
-    followers:[], following:[], created:Date.now()
-  });
-  localStorage.setItem("session",u);
-  start(u);
-}
-async function login(){
-  const u=$("user").value.trim(); const p=$("pass").value.trim();
-  const s=await docUser(u).get();
-  if(!s.exists) return alert("No existe usuario");
-  if(s.data().pass!==p) return alert("Contraseña incorrecta");
-  localStorage.setItem("session",u);
-  start(u);
-}
-function logout(){
-  localStorage.removeItem("session");
-  cleanupListeners();
-  location.reload();
-}
-function start(u){
-  me=u;
-  $("authBox").classList.add("hidden");
-  $("sessionBox").classList.remove("hidden");
-  $("meName").innerText = u;
-  $("meOwner").classList.toggle("hidden", u!=="cracky");
-  $("meCheck").classList.add("hidden");
-  // show owner+verify
-  docUser(u).onSnapshot(s=>{
-    const d=s.data();
-    $("meCheck").classList.toggle("hidden", !d?.verified);
-    updateMyCounts(d);
-  });
-  $("verifyPanel").classList.toggle("hidden", u!=="cracky");
-  showHome();
-  loadWhoToFollow();
-}
-function updateMyCounts(d){
-  const f=(d?.following||[]).length, r=(d?.followers||[]).length;
-  $("meStats").innerText = `${f} siguiendo · ${r} seguidores`;
-}
-window.onload=()=>{const s=localStorage.getItem("session"); if(s) start(s); else showHome();};
-
-/* ===== Home (timeline) ===== */
-function showHome(){
-  cleanupListeners();
-  $("leftCol").innerHTML = `
-    <div class="card">
+  <section>
+    <div class="card" id="composerCard" class="hidden">
       <div class="row">
-        <input id="postText" placeholder="¿Qué está pasando?"/>
-        <input id="postImg" placeholder="URL de imagen (opcional)"/>
-        <button class="btn" onclick="createPost()">Postear</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <b>Inicio</b>
-        <div class="tabbar">
-          <div class="tab" onclick="feedMode='global'; showHome()">Global</div>
-          <div class="tab" onclick="feedMode='following'; showHome()">Siguiendo</div>
-        </div>
-      </div>
-      <div id="feed" class="list">Cargando…</div>
-    </div>
-  `;
-  renderFeed();
-}
-let feedMode="global";
-function renderFeed(){
-  const box=$("feed");
-  if(unsubFeed) unsubFeed();
-  const q = feedMode==="following" && me
-    ? docUser(me).onSnapshot(async s=>{
-        const following=s.data()?.following||[];
-        if(unsubFeed) unsubFeed();
-        if(following.length===0){
-          box.innerHTML = `<div class="muted">Aún no sigues a nadie.</div>`;
-          return;
-        }
-        unsubFeed = db.collection("posts").where("author","in", following.slice(0,10)) // Firestore IN máx 10
-          .orderBy("ts","desc").limit(100).onSnapshot(drawPosts);
-      })
-    : (unsubFeed = db.collection("posts").orderBy("ts","desc").limit(100).onSnapshot(drawPosts));
-  function drawPosts(snap){
-    box.innerHTML="";
-    if(snap.empty){ box.innerHTML="<div class='muted'>Sin publicaciones</div>"; return; }
-    snap.forEach(d=>{
-      const p=d.data();
-      box.innerHTML += postHTML(p);
-    });
-  }
-}
-function postHTML(p){
-  const check = p.verified ? `<span class="check">✓</span>` : "";
-  const owner = p.author==="cracky" ? `<span class="owner">Owner</span>` : "";
-  const img = p.image? `<img class="post-img" src="${p.image}" alt="">` : "";
-  return `
-    <div class="post">
-      <img class="avatar" src="${p.authorAvatar||''}" alt="">
-      <div>
-        <div class="row" style="justify-content:space-between">
-          <div><span class="name">@${p.author}</span>${check}${owner} · <span class="muted">${timeago(p.ts)}</span></div>
-          <button class="btn" onclick="viewProfile('${p.author}')">Ver perfil</button>
-        </div>
-        <div>${p.text||""}</div>
-        ${img}
-      </div>
-    </div>
-  `;
-}
-async function createPost(){
-  if(!me) return alert("Inicia sesión");
-  const text=$("postText").value.trim();
-  const image=$("postImg").value.trim();
-  if(!text && !image) return;
-  const u=await getUser(me);
-  await db.collection("posts").add({
-    author:me, text, image, ts:Date.now(),
-    authorAvatar: u?.avatar||"", verified: !!u?.verified
-  });
-  $("postText").value=""; $("postImg").value="";
-  toast("Publicado");
-}
-
-/* ===== Profile ===== */
-function showProfile(username){
-  cleanupListeners();
-  const target = username || me;
-  $("leftCol").innerHTML = `
-    <div id="profileBox" class="card">Cargando perfil…</div>
-    <div class="card"><b>Publicaciones</b><div id="userFeed" class="list">Cargando…</div></div>
-  `;
-  if(!target){$("profileBox").innerHTML="Inicia sesión";return;}
-  if(unsubProfile) unsubProfile();
-  unsubProfile = docUser(target).onSnapshot(s=>{
-    if(!s.exists){ $("profileBox").innerHTML="Perfil no encontrado"; return; }
-    const d=s.data();
-    const isMe = (me===target);
-    const check = d.verified?`<span class="check">✓</span>`:"";
-    const owner = target==="cracky"?`<span class="owner">Owner</span>`:"";
-    const followBtn = isMe?``:`<button class="btn" id="followBtn" onclick="toggleFollow('${target}')">…</button>`;
-    $("profileBox").innerHTML = `
-      <img class="banner" src="${d.banner||''}" alt="">
-      <div class="row" style="margin-top:8px">
-        <img class="avatar" src="${d.avatar||''}" alt="">
-        <div>
-          <div class="name">@${target} ${check} ${owner}</div>
-          <div class="muted"><span id="pFollowing">${(d.following||[]).length}</span> siguiendo · <span id="pFollowers">${(d.followers||[]).length}</span> seguidores</div>
-        </div>
-        <div style="margin-left:auto">${followBtn}</div>
-      </div>
-      <div class="${isMe?'':'hidden'}" style="margin-top:8px">
-        <b>Editar perfil</b>
-        <input id="edAvatar" placeholder="URL avatar" value="${d.avatar||''}">
-        <input id="edBanner" placeholder="URL banner" value="${d.banner||''}">
-        <textarea id="edBio" placeholder="Bio">${d.bio||''}</textarea>
-        <button class="btn" onclick="saveProfile()">Guardar</button>
-      </div>
-    `;
-    if(!isMe) setFollowButtonState(target, d);
-  });
-  // feed del usuario
-  db.collection("posts").where("author","==",target).orderBy("ts","desc").limit(100).onSnapshot(s=>{
-    const box=$("userFeed"); box.innerHTML="";
-    if(s.empty){box.innerHTML="<div class='muted'>No hay posts</div>";return;}
-    s.forEach(d=> box.innerHTML+=postHTML(d.data()));
-  });
-}
-async function saveProfile(){
-  const avatar=$("edAvatar").value.trim(), banner=$("edBanner").value.trim(), bio=$("edBio").value.trim();
-  await docUser(me).update({avatar,banner,bio});
-  toast("Perfil actualizado");
-}
-async function setFollowButtonState(target, targetData){
-  const meData = await getUser(me);
-  const imFollowing = (meData?.following||[]).includes(target);
-  $("followBtn").innerText = imFollowing? "Siguiendo" : "Seguir";
-}
-async function toggleFollow(target){
-  if(!me) return alert("Inicia sesión");
-  if(me===target) return;
-  const meRef=docUser(me); const tgRef=docUser(target);
-  const [ms,ts]=await Promise.all([meRef.get(), tgRef.get()]);
-  if(!ts.exists) return;
-  const m=ms.data(), t=ts.data();
-  const following = new Set(m.following||[]);
-  const followers = new Set(t.followers||[]);
-  let msg="";
-  if(following.has(target)){
-    following.delete(target); followers.delete(me); msg="Dejaste de seguir";
-  }else{
-    following.add(target); followers.add(me); msg="Siguiendo";
-  }
-  await meRef.update({following:Array.from(following)});
-  await tgRef.update({followers:Array.from(followers)});
-  $("followBtn").innerText = (msg==="Siguiendo"?"Siguiendo":"Seguir");
-  toast(msg);
-  // contadores live se actualizan por snapshot
-}
-
-/* ===== Verificación (solo cracky) ===== */
-async function setVerify(flag){
-  if(me!=="cracky") return alert("Solo cracky");
-  const u=$("verifyTarget").value.trim(); if(!u) return;
-  const s=await docUser(u).get(); if(!s.exists) return alert("No existe");
-  await docUser(u).update({verified:!!flag});
-  toast(flag?"Usuario verificado ✓":"Verificación removida");
-}
-
-/* ===== Who to follow ===== */
-async function loadWhoToFollow(){
-  const box=$("whoToFollow");
-  const all=await db.collection("users").limit(50).get();
-  if(all.empty){ box.innerText="No hay usuarios aún"; return; }
-  const mine = me? (await docUser(me).get()).data() : null;
-  box.innerHTML="";
-  all.forEach(d=>{
-    if(me && d.id===me) return;
-    const u=d.data();
-    const check=u.verified?`<span class="check">✓</span>`:"";
-    const owner=d.id==="cracky"?`<span class="owner">Owner</span>`:"";
-    const isFollowing = me && (mine.following||[]).includes(d.id);
-    box.innerHTML += `
-      <div class="row" style="justify-content:space-between;margin:6px 0">
-        <div class="row"><img class="avatar" src="${u.avatar||''}"><div style="margin-left:8px"><div class="name">@${d.id}${check}${owner}</div><div class="muted">${(u.followers||[]).length} seguidores</div></div></div>
-        ${me? `<button class="btn" onclick="toggleFollow('${d.id}')">${isFollowing?'Siguiendo':'Seguir'}</button>` : ``}
-      </div>`;
-  });
-}
-
-/* ===== Buscar / Ver otro perfil ===== */
-function showSearch(){
-  cleanupListeners();
-  $("leftCol").innerHTML=`
-    <div class="card">
-      <div class="row">
-        <input id="searchUser" placeholder="Buscar usuario @nombre">
-        <button class="btn" onclick="doSearch()">Buscar</button>
-      </div>
-      <div id="results" class="list" style="margin-top:8px"></div>
-    </div>`;
-}
-async function doSearch(){
-  const q=$("searchUser").value.trim();
-  if(!q) return;
-  const s=await docUser(q).get();
-  const box=$("results"); box.innerHTML="";
-  if(!s.exists){ box.innerHTML="<div class='muted'>No encontrado</div>"; return;}
-  const d=s.data();
-  box.innerHTML = `
-    <div class="row" style="justify-content:space-between">
-      <div class="row"><img class="avatar" src="${d.avatar||''}"><div style="margin-left:8px"><div class="name">@${q} ${d.verified?'<span class="check">✓</span>':''} ${q==='cracky'?'<span class="owner">Owner</span>':''}</div><div class="muted">${(d.followers||[]).length} seguidores</div></div></div>
-      <div class="row">
-        <button class="btn" onclick="viewProfile('${q}')">Ver perfil</button>
-        ${me ? `<button class="btn" onclick="startChat('${q}')">Mensaje</button>`:''}
-      </div>
-    </div>
-  `;
-}
-function viewProfile(u){ showProfile(u); }
-
-/* ===== Comunidades ===== */
-function showCommunities(){
-  cleanupListeners();
-  $("leftCol").innerHTML = `
-    <div class="card">
-      <div class="row">
-        <input id="cName" placeholder="Nombre de comunidad">
-        <input id="cBanner" placeholder="URL de banner (opcional)">
-        <button class="btn" onclick="createCommunity()">Crear</button>
-      </div>
-    </div>
-    <div class="card">
-      <b>Comunidades</b>
-      <div id="comList" class="list">Cargando…</div>
-    </div>
-    <div id="comView"></div>
-  `;
-  db.collection("communities").orderBy("created","desc").onSnapshot(s=>{
-    const box=$("comList"); box.innerHTML="";
-    if(s.empty){box.innerHTML="<div class='muted'>Sin comunidades</div>";return;}
-    s.forEach(d=>{
-      const c=d.data();
-      box.innerHTML+=`
-        <div class="row" style="justify-content:space-between;margin:6px 0">
-          <div><span class="name">${c.name}</span> <span class="pill">${(c.members||[]).length} miembros</span></div>
-          <div class="row">
-            <button class="btn" onclick="openCommunity('${d.id}')">Abrir</button>
-            ${me? `<button class="btn" onclick="toggleJoin('${d.id}')">${(c.members||[]).includes(me)?'Salir':'Unirse'}</button>`:''}
+        <img id="meAvatar" class="avatar" alt="" />
+        <div style="flex:1">
+          <textarea id="postText" placeholder="¿Qué está pasando?"></textarea>
+          <input id="postImage" placeholder="URL de imagen (opcional)" />
+          <div class="between">
+            <div class="muted">Solo URLs de imagen (jpg/png/gif, etc.).</div>
+            <button id="btnPublish">Publicar</button>
           </div>
-        </div>`;
-    });
-  });
-}
-async function createCommunity(){
-  if(!me) return alert("Inicia sesión");
-  const name=$("cName").value.trim(); if(!name) return;
-  const banner=$("cBanner").value.trim();
-  await db.collection("communities").add({name, banner, owner:me, members:[me], created:Date.now()});
-  $("cName").value=$("cBanner").value="";
-  toast("Comunidad creada");
-}
-async function toggleJoin(id){
-  const ref=db.collection("communities").doc(id); const s=await ref.get(); const c=s.data();
-  const set=new Set(c.members||[]); if(set.has(me)) set.delete(me); else set.add(me);
-  await ref.update({members:Array.from(set)});
-}
-function openCommunity(id){
-  if(unsubCommunity) unsubCommunity();
-  $("comView").innerHTML = `
-    <div class="card">
-      <div id="comHeader">Cargando…</div>
-      <div class="row">
-        <input id="cpText" placeholder="Mensaje">
-        <input id="cpImg" placeholder="URL imagen (opcional)">
-        <button class="btn" onclick="sendCommunityPost('${id}')">Publicar</button>
+        </div>
       </div>
-      <div id="comFeed" class="list" style="margin-top:8px">Cargando…</div>
     </div>
-  `;
-  db.collection("communities").doc(id).get().then(s=>{
-    const c=s.data();
-    $("comHeader").innerHTML = `
-      ${c.banner? `<img class="banner" src="${c.banner}">`:""}
-      <div class="row" style="justify-content:space-between;margin-top:8px">
-        <div><b>${c.name}</b> · <span class="pill">${(c.members||[]).length} miembros</span></div>
-      </div>`;
-  });
-  unsubCommunity = db.collection("communities").doc(id).collection("posts")
-    .orderBy("ts","desc").limit(100).onSnapshot(s=>{
-      const box=$("comFeed"); box.innerHTML="";
-      if(s.empty){box.innerHTML="<div class='muted'>Sé el primero en publicar</div>";return;}
-      s.forEach(d=>{
-        const p=d.data();
-        box.innerHTML+=`
-          <div class="post" style="border-bottom:1px solid var(--line);padding:10px 0">
-            <img class="avatar" src="${p.authorAvatar||''}">
-            <div>
-              <div class="row" style="justify-content:space-between">
-                <div><span class="name">@${p.author}</span> ${p.verified?'<span class="check">✓</span>':''} ${p.author==='cracky'?'<span class="owner">Owner</span>':''} · <span class="muted">${timeago(p.ts)}</span></div>
-              </div>
-              <div>${p.text||''}</div>
-              ${p.image?`<img class="post-img" src="${p.image}">`:''}
-            </div>
-          </div>`;
+
+    <div class="card">
+      <div class="between"><h3 class="title">Timeline</h3>
+        <div class="pillbar">
+          <button class="ghost" id="btnAll">Todos</button>
+          <button class="ghost" id="btnOnlyFollowing">Siguiendo</button>
+        </div>
+      </div>
+      <div id="feed"></div>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="card" id="profileCard">
+      <h3 class="title">Perfil</h3>
+      <img id="pBanner" class="banner" alt="" />
+      <div class="row" style="margin-top:-24px">
+        <img id="pAvatar" class="avatar" style="width:64px;height:64px;border:2px solid #151b22" alt=""/>
+        <div style="margin-left:6px">
+          <div id="pName" style="font-weight:800"></div>
+          <div class="muted">@<span id="pUser"></span> • <span id="pFollowers">0</span> seguidores</div>
+          <div id="roleLine" class="muted"></div>
+        </div>
+      </div>
+      <div id="pBio" style="margin-top:6px"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnFollow" class="ghost hidden">Seguir</button>
+        <button id="btnUnfollow" class="ghost hidden">Siguiendo</button>
+        <button id="btnEditProfile" class="ghost hidden">Editar perfil</button>
+      </div>
+
+      <!-- Edición de perfil -->
+      <div id="editProfile" class="hidden" style="margin-top:10px">
+        <label>Nombre para mostrar</label>
+        <input id="editDisplay" />
+        <label>Bio</label>
+        <textarea id="editBio"></textarea>
+        <label>Avatar (URL de imagen)</label>
+        <input id="editAvatar" />
+        <label>Banner (URL de imagen)</label>
+        <input id="editBanner" />
+        <button id="btnSaveProfile" class="ok">Guardar</button>
+        <button id="btnCancelProfile" class="ghost">Cancelar</button>
+      </div>
+
+      <!-- Panel solo para cracky -->
+      <div id="ownerTools" class="hidden" style="margin-top:12px">
+        <h4 class="title">Panel de verificación</h4>
+        <label>Usuario a verificar</label>
+        <input id="verifyUser" placeholder="usuario" />
+        <div class="row">
+          <button id="btnVerify" class="ok">Verificar</button>
+          <button id="btnUnverify" class="warn">Quitar verificado</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="title">Explorar usuarios</h3>
+      <div id="userList"></div>
+    </div>
+  </aside>
+</main>
+
+<!-- Firebase v10 (modular) -->
+<script type="module">
+  // 🔧 Pega tu configuración aquí (usa tu firebaseConfig ANTERIOR)
+  // const firebaseConfig = { apiKey:"", authDomain:"", projectId:"", ... };
+  const firebaseConfig = YOUR_FIREBASE_CONFIG_HERE; // <-- REEMPLAZA ESTO
+
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, query, where, onSnapshot, orderBy, serverTimestamp, increment, runTransaction, limit } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+  import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+
+  // Inicializa
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  // Utiles DOM
+  const $ = s=>document.querySelector(s);
+  const $$ = s=>document.querySelectorAll(s);
+  const show = (el, yes=true)=> el.classList[yes?'remove':'add']('hidden');
+
+  // Hash SHA-256 para contraseña (no guardes texto plano).
+  async function hash(text){
+    const u = new TextEncoder().encode(text);
+    const h = await crypto.subtle.digest('SHA-256', u);
+    return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+
+  // Sesión basada en Firestore (con Auth anónimo solo para permisos de cliente)
+  let session = JSON.parse(localStorage.getItem('session')||'null');
+  function saveSession(s){ session=s; localStorage.setItem('session', JSON.stringify(s)); renderSession(); }
+  function clearSession(){ localStorage.removeItem('session'); session=null; renderSession(); }
+
+  // Sign-in anónimo para poder usar Firestore con reglas abiertas a auth != null
+  signInAnonymously(auth).catch(console.error);
+
+  // Semilla: crea la cuenta "cracky" si no existe
+  async function seedCracky(){
+    const id = 'cracky';
+    const ref = doc(db,'users', id);
+    const snap = await getDoc(ref);
+    if(!snap.exists()){
+      await setDoc(ref,{
+        username:id,
+        usernameLower:id,
+        displayName:'cracky',
+        role:'owner', // <- etiqueta Owner
+        verified:true,
+        followersCount:0, followingCount:0,
+        avatarUrl:'https://i.imgur.com/ZJ1qQ0S.png',
+        bannerUrl:'https://i.imgur.com/fQx5g6C.jpeg',
+        bio:'Owner del sitio',
+        passwordHash: await hash('16042011'),
+        createdAt: serverTimestamp()
       });
-    });
-}
-async function sendCommunityPost(id){
-  if(!me) return alert("Inicia sesión");
-  const t=$("cpText").value.trim(); const img=$("cpImg").value.trim();
-  if(!t && !img) return;
-  const u=await getUser(me);
-  await db.collection("communities").doc(id).collection("posts").add({
-    author:me,text:t,image:img,ts:Date.now(),authorAvatar:u?.avatar||"",verified:!!u?.verified
-  });
-  $("cpText").value=$("cpImg").value=""; toast("Publicado en comunidad");
-}
+    }
+  }
 
-/* ===== Mensajes (chat privado) ===== */
-function showMessages(){
-  cleanupListeners();
-  $("leftCol").innerHTML = `
-    <div class="card">
-      <div class="row">
-        <input id="chatUser" placeholder="Usuario para chatear">
-        <button class="btn" onclick="startChatFromInput()">Abrir chat</button>
+  // Auth UI (tabs)
+  $$('.tab').forEach(t=>t.addEventListener('click',()=>{
+    $$('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const tab=t.dataset.tab;
+    show($('#loginForm'), tab==='login');
+    show($('#registerForm'), tab==='register');
+  }));
+
+  // Registro
+  $('#btnRegister').addEventListener('click', async ()=>{
+    const u = $('#regUser').value.trim();
+    const p = $('#regPass').value;
+    const avatar = $('#regAvatar').value.trim();
+    const banner = $('#regBanner').value.trim();
+    if(u.length<3 || u.includes(' ')|| p.length<6){ alert('Usuario o contraseña inválidos.'); return; }
+    const id = u.toLowerCase();
+    const ref = doc(db,'users', id);
+    const exist = await getDoc(ref);
+    if(exist.exists()){ alert('Ese usuario ya existe.'); return; }
+    await setDoc(ref,{
+      username:u,
+      usernameLower:id,
+      displayName:u,
+      role:'user', verified:false,
+      followersCount:0, followingCount:0,
+      avatarUrl: avatar||'https://i.imgur.com/1bX5QH6.png',
+      bannerUrl: banner||'https://i.imgur.com/9aGxH0V.jpeg',
+      bio:'',
+      passwordHash: await hash(p),
+      createdAt: serverTimestamp()
+    });
+    saveSession({ username:u, usernameLower:id });
+  });
+
+  // Login
+  $('#btnLogin').addEventListener('click', async ()=>{
+    const u = $('#loginUser').value.trim();
+    const p = $('#loginPass').value;
+    const id = u.toLowerCase();
+    const ref = doc(db,'users', id);
+    const snap = await getDoc(ref);
+    if(!snap.exists()){ alert('Usuario no encontrado'); return; }
+    const ok = (await hash(p)) === snap.data().passwordHash;
+    if(!ok){ alert('Contraseña incorrecta'); return; }
+    saveSession({ username:snap.data().username, usernameLower:id });
+  });
+
+  // Render de sesión en header + paneles dependientes
+  function renderSession(){
+    const s = $('#sessionArea');
+    s.innerHTML='';
+    if(!session){
+      s.innerHTML = '<span class="muted">No has iniciado sesión</span>';
+      show($('#composerCard'), false);
+      show($('#communityCreate'), false);
+      show($('#dmStart'), false);
+      show($('#btnEditProfile'), false);
+      show($('#ownerTools'), false);
+      return;
+    }
+    const span = document.createElement('div');
+    span.className='row';
+    span.innerHTML = `<span class="chip">Conectado como <b>@${session.username}</b></span> <button class="ghost" id="btnLogout">Salir</button>`;
+    s.appendChild(span);
+    $('#btnLogout').onclick = ()=>{ clearSession(); };
+    show($('#composerCard'), true);
+    show($('#communityCreate'), true);
+    show($('#dmStart'), true);
+    show($('#btnEditProfile'), true);
+    show($('#ownerTools'), session.usernameLower==='cracky');
+    loadMeProfile();
+  }
+
+  // Seguimiento de usuarios (explorar + follow)
+  function verifiedBadge(v){
+    return v ? `<span class="verified" title="Verificado">${checkSvg()}</span>` : '';
+  }
+  function ownerTag(role){
+    return role==='owner' ? `<span class="owner nowrap">Owner</span>` : '';
+  }
+  function checkSvg(){
+    return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M22.25 12c0-1.03-.84-1.87-1.87-1.87h-.09c-.4 0-.78-.16-1.06-.44l-.06-.06c-.28-.28-.44-.66-.44-1.06v-.09c0-1.03-.84-1.87-1.87-1.87h-.09c-.4 0-.78-.16-1.06-.44l-.06-.06c-.28-.28-.44-.66-.44-1.06v-.09C15.25 2.84 14.41 2 13.38 2h-.76c-1.03 0-1.87.84-1.87 1.87v.09c0 .4-.16.78-.44 1.06l-.06.06c-.28.28-.66.44-1.06.44h-.09c-1.03 0-1.87.84-1.87 1.87v.09c0 .4-.16.78-.44 1.06l-.06.06c-.28.28-.66.44-1.06.44h-.09C3.84 10.13 3 10.97 3 12c0 1.03.84 1.87 1.87 1.87h.09c.4 0 .78.16 1.06.44l.06.06c.28.28.44.66.44 1.06v.09c0 1.03.84 1.87 1.87 1.87h.09c.4 0 .78.16 1.06.44l.06.06c.28.28.66.44 1.06.44h.09c1.03 0 1.87-.84 1.87-1.87v-.09c0-.4.16-.78.44-1.06l.06-.06c.28-.28.66-.44 1.06-.44h.09c1.03 0 1.87-.84 1.87-1.87v-.09c0-.4.16-.78.44-1.06l.06-.06c.28-.28.66-.44 1.06-.44h.09c1.03 0 1.87-.84 1.87-1.87Z"/></svg>`;
+  }
+
+  // Feed
+  let feedUnsub=null; let onlyFollowing=false;
+  $('#btnAll').onclick=()=>{ onlyFollowing=false; bindFeed(); };
+  $('#btnOnlyFollowing').onclick=()=>{ onlyFollowing=true; bindFeed(); };
+
+  function postHtml(p){
+    const name = p.authorDisplay||p.author;
+    const v = p.authorVerified;
+    const role = p.authorRole||'user';
+    return `<div class="post">
+      <img class="avatar" src="${p.authorAvatar||''}" alt=""/>
+      <div>
+        <div class="row" style="gap:6px">
+          <b>${name}</b> ${ownerTag(role)} ${verifiedBadge(v)} <span class="muted">@${p.author}</span>
+          <span class="muted">· ${p.createdAt?.toDate? timeAgo(p.createdAt.toDate()) : ''}</span>
+        </div>
+        <div>${escapeHtml(p.text||'')}</div>
+        ${p.imageUrl? `<img class="media" src="${p.imageUrl}" alt="">` : ''}
       </div>
-    </div>
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <b>Chat</b>
-        <span id="chatWith" class="muted"></span>
-      </div>
-      <div id="chatBox" class="list" style="height:55vh">Selecciona un usuario…</div>
-      <div class="row">
-        <input id="msgText" placeholder="Mensaje">
-        <input id="msgImg" placeholder="URL imagen (opcional)">
-        <button class="btn" onclick="sendMsg()">Enviar</button>
-      </div>
-    </div>
-  `;
-}
-function chatId(a,b){return [a,b].sort().join("_");}
-let chattingWith=null;
-async function startChat(user){
-  if(!me) return alert("Inicia sesión");
-  if(user===me) return;
-  chattingWith=user;
-  $("chatWith").innerText = "@"+user;
-  const id=chatId(me,user);
-  if(unsubChat) unsubChat();
-  unsubChat = db.collection("chats").doc(id).collection("messages").orderBy("ts","asc").limit(300)
-    .onSnapshot(s=>{
-      const box=$("chatBox"); box.innerHTML="";
-      if(s.empty){box.innerHTML="<div class='muted'>Escribe el primer mensaje</div>";return;}
-      s.forEach(d=>{
-        const m=d.data();
-        box.innerHTML+=`
-          <div class="row" style="margin:6px 0; ${m.from===me?'justify-content:flex-end':''}">
-            <div class="card" style="max-width:70%">
-              <div class="muted" style="font-size:12px">${m.from} · ${timeago(m.ts)}</div>
-              <div>${m.text||''}</div>
-              ${m.image?`<img src="${m.image}" style="max-width:100%;border-radius:10px;margin-top:6px;border:1px solid var(--line)">`:''}
+    </div>`;
+  }
+
+  function timeAgo(d){
+    const sec = Math.floor((Date.now()-d.getTime())/1000);
+    if(sec<60) return sec+"s"; const m=Math.floor(sec/60); if(m<60) return m+"m"; const h=Math.floor(m/60); if(h<24) return h+"h"; const dd=Math.floor(h/24); if(dd<7) return dd+"d"; return d.toLocaleDateString();
+  }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+  async function bindFeed(){
+    if(feedUnsub) feedUnsub();
+    let qy;
+    if(onlyFollowing && session){
+      // obtener a quién sigo
+      const my = await getDoc(doc(db,'users', session.usernameLower));
+      const following = (my.data()?.followingList)||[];
+      if(following.length===0){ $('#feed').innerHTML='<div class="muted">No sigues a nadie aún.</div>'; return; }
+      qy = query(collection(db,'posts'), where('authorLower','in', following.slice(0,10)), orderBy('createdAt','desc'), limit(100));
+      // Nota: Firestore "in" admite hasta 10 elementos; para más, usar paginación o dividir.
+    } else {
+      qy = query(collection(db,'posts'), orderBy('createdAt','desc'), limit(100));
+    }
+    feedUnsub = onSnapshot(qy, (ss)=>{
+      const html = ss.docs.map(d=>postHtml(d.data())).join('');
+      $('#feed').innerHTML = html || '<div class="muted">Aún no hay publicaciones.</div>';
+    });
+  }
+
+  // Publicar
+  $('#btnPublish').addEventListener('click', async ()=>{
+    if(!session) return alert('Inicia sesión');
+    const text = $('#postText').value.trim();
+    const img = $('#postImage').value.trim();
+    if(!text && !img){ alert('Escribe algo o agrega imagen.'); return; }
+    const me = (await getDoc(doc(db,'users', session.usernameLower))).data();
+    await addDoc(collection(db,'posts'),{
+      author: me.username,
+      authorLower: me.usernameLower,
+      authorDisplay: me.displayName,
+      authorAvatar: me.avatarUrl,
+      authorVerified: !!me.verified,
+      authorRole: me.role||'user',
+      text, imageUrl: img||null, createdAt: serverTimestamp()
+    });
+    $('#postText').value=''; $('#postImage').value='';
+  });
+
+  // Perfil activo (propio o de otro al hacer click en lista)
+  let viewing = null; // usernameLower
+  async function showProfile(userLower){
+    const snap = await getDoc(doc(db,'users', userLower));
+    if(!snap.exists()) return;
+    viewing = userLower;
+    const u = snap.data();
+    $('#pBanner').src = u.bannerUrl||'';
+    $('#pAvatar').src = u.avatarUrl||'';
+    $('#pName').innerHTML = `${escapeHtml(u.displayName||u.username)} ${ownerTag(u.role)} ${verifiedBadge(u.verified)}`;
+    $('#pUser').textContent = u.username;
+    $('#pFollowers').textContent = u.followersCount||0;
+    $('#pBio').textContent = u.bio||'';
+
+    // botones seguir/editar
+    if(session){
+      if(session.usernameLower===userLower){
+        show($('#btnEditProfile'), true);
+        show($('#btnFollow'), false); show($('#btnUnfollow'), false);
+      } else {
+        show($('#btnEditProfile'), false);
+        // ¿lo sigo?
+        const me = await getDoc(doc(db,'users', session.usernameLower));
+        const following = me.data()?.followingList||[];
+        const follows = following.includes(userLower);
+        show($('#btnFollow'), !follows);
+        show($('#btnUnfollow'), follows);
+      }
+    }
+  }
+
+  // Explorar usuarios (lista simple)
+  function bindUsers(){
+    onSnapshot(query(collection(db,'users'), orderBy('usernameLower')), (ss)=>{
+      const list = ss.docs.map(d=>({id:d.id,...d.data()}));
+      $('#userList').innerHTML = list.map(u=>
+        `<div class="between" style="padding:6px 0;border-bottom:1px solid #22303c">
+          <div class="row">
+            <img class="avatar" src="${u.avatarUrl||''}" alt=""/>
+            <div style="margin-left:6px">
+              <div><b>${escapeHtml(u.displayName||u.username)}</b> ${ownerTag(u.role)} ${verifiedBadge(u.verified)}</div>
+              <div class="muted">@${u.username}</div>
             </div>
-          </div>`;
-      });
-      box.scrollTop=box.scrollHeight;
+          </div>
+          <button class="ghost" data-open="${u.usernameLower}">Ver</button>
+        </div>`
+      ).join('');
+      $$('#userList [data-open]').forEach(b=> b.addEventListener('click',()=> showProfile(b.dataset.open)));
+
+      // si no se está viendo un perfil aún, muestra el mío si hay sesión o el primero
+      if(!viewing){
+        if(session) showProfile(session.usernameLower); else if(list[0]) showProfile(list[0].id);
+      }
     });
-}
-function startChatFromInput(){
-  const u=$("chatUser").value.trim(); if(!u) return;
-  startChat(u);
-}
-async function sendMsg(){
-  if(!me||!chattingWith) return;
-  const t=$("msgText").value.trim(); const img=$("msgImg").value.trim();
-  if(!t && !img) return;
-  await db.collection("chats").doc(chatId(me,chattingWith)).collection("messages").add({
-    from:me,text:t,image:img,ts:Date.now()
+  }
+
+  // Follow/Unfollow
+  $('#btnFollow').onclick = ()=> toggleFollow(true);
+  $('#btnUnfollow').onclick = ()=> toggleFollow(false);
+
+  async function toggleFollow(follow){
+    if(!session||!viewing||session.usernameLower===viewing) return;
+    const meRef = doc(db,'users', session.usernameLower);
+    const otherRef = doc(db,'users', viewing);
+    await runTransaction(db, async (tx)=>{
+      const meSnap = await tx.get(meRef);
+      const otherSnap = await tx.get(otherRef);
+      if(!meSnap.exists()||!otherSnap.exists()) throw new Error('User missing');
+      const me = meSnap.data();
+      const following = new Set(me.followingList||[]);
+      if(follow) following.add(viewing); else following.delete(viewing);
+      tx.update(meRef,{ followingList:[...following], followingCount:(following.size||0) });
+      const delta = follow?1:-1;
+      tx.update(otherRef,{ followersCount: increment(delta) });
+    });
+    showProfile(viewing);
+    bindFeed();
+  }
+
+  // Editar perfil
+  $('#btnEditProfile').onclick = async ()=>{
+    if(!session) return; show($('#editProfile'), true);
+    const me = (await getDoc(doc(db,'users', session.usernameLower))).data();
+    $('#editDisplay').value = me.displayName||me.username;
+    $('#editBio').value = me.bio||'';
+    $('#editAvatar').value = me.avatarUrl||'';
+    $('#editBanner').value = me.bannerUrl||'';
+  };
+  $('#btnCancelProfile').onclick = ()=> show($('#editProfile'), false);
+  $('#btnSaveProfile').onclick = async ()=>{
+    const d = {
+      displayName: $('#editDisplay').value.trim(),
+      bio: $('#editBio').value.trim(),
+      avatarUrl: $('#editAvatar').value.trim(),
+      bannerUrl: $('#editBanner').value.trim()
+    };
+    await updateDoc(doc(db,'users', session.usernameLower), d);
+    show($('#editProfile'), false);
+    showProfile(session.usernameLower);
+  };
+
+  // Herramientas de verificación (solo cracky)
+  $('#btnVerify').onclick = ()=> setVerify(true);
+  $('#btnUnverify').onclick = ()=> setVerify(false);
+  async function setVerify(val){
+    if(!session || session.usernameLower!=='cracky') return alert('Solo el Owner');
+    const u = $('#verifyUser').value.trim().toLowerCase();
+    if(!u) return; const ref = doc(db,'users', u); const s = await getDoc(ref);
+    if(!s.exists()) return alert('Usuario no existe');
+    await updateDoc(ref,{ verified: !!val });
+    if(viewing===u) showProfile(u);
+  }
+
+  // Comunidades (crear + listar + chat)
+  $('#btnCreateCommunity').onclick = async ()=>{
+    if(!session) return;
+    const name = $('#commName').value.trim();
+    if(!name) return alert('Ponle nombre');
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    const ref = doc(db,'communities', slug);
+    const snap = await getDoc(ref);
+    if(snap.exists()) return alert('Ya existe');
+    await setDoc(ref,{
+      slug, name, description: $('#commDesc').value.trim(),
+      bannerUrl: $('#commBanner').value.trim()||'',
+      owner: session.usernameLower,
+      createdAt: serverTimestamp()
+    });
+    await addDoc(collection(db,'communityMembers'),{ comm: slug, user: session.usernameLower, joinedAt: serverTimestamp() });
+  };
+
+  // listar comunidades
+  onSnapshot(query(collection(db,'communities'), orderBy('slug')), async (ss)=>{
+    const items = await Promise.all(ss.docs.map(async d=>{
+      const c = d.data();
+      // contar miembros rápido (no escalable, pero ok demo)
+      const members = await (await import('https://cdn.skypack.dev/idb-keyval?min')).get('members:'+c.slug) || null;
+      return {id:d.id, ...c, membersCached:members};
+    }));
+    $('#communityList').innerHTML = items.map(c=>
+      `<div class="card" style="padding:10px">
+        <div class="between">
+          <div class="row">
+            <img class="avatar" style="width:36px;height:36px" src="${c.bannerUrl||'https://i.imgur.com/9aGxH0V.jpeg'}"/>
+            <div style="margin-left:6px">
+              <div><b>${escapeHtml(c.name)}</b></div>
+              <div class="muted">/${c.slug}</div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="ghost" data-open-comm="${c.slug}">Abrir</button>
+          </div>
+        </div>
+        <div id="comm-${c.slug}" class="hidden" style="margin-top:8px">
+          <div id="commChat-${c.slug}" class="dm" style="max-height:200px;overflow:auto"></div>
+          <div class="row" style="margin-top:6px">
+            <input id="commInput-${c.slug}" placeholder="Mensaje a la comunidad"/>
+            <button data-send-comm="${c.slug}">Enviar</button>
+          </div>
+        </div>
+      </div>`
+    ).join('');
+    $$('#communityList [data-open-comm]').forEach(b=> b.addEventListener('click',()=> toggleCommunity(b.dataset.openComm)));
+    $$('#communityList [data-send-comm]').forEach(b=> b.addEventListener('click',()=> sendCommunityMsg(b.dataset.sendComm)));
   });
-  $("msgText").value=$("msgImg").value="";
-}
 
-/* ===== Verificación UI en posts nuevos ===== */
-db.collection("users").doc("cracky").get().then(s=>{
-  if(s.exists && !s.data().verified){ docUser("cracky").update({verified:true}).catch(()=>{}); }
-});
+  const commUnsubs = new Map();
+  function toggleCommunity(slug){
+    const box = $('#comm-'+slug); box.classList.toggle('hidden');
+    if(!box.classList.contains('hidden')) bindCommunity(slug);
+    else {
+      const u = commUnsubs.get(slug); if(u){u(); commUnsubs.delete(slug);} }
+  }
+  function bindCommunity(slug){
+    const chat = $('#commChat-'+slug);
+    const qy = query(collection(db,'communities', slug, 'messages'), orderBy('createdAt','asc'));
+    const unsub = onSnapshot(qy,(ss)=>{
+      chat.innerHTML = ss.docs.map(d=>{
+        const m = d.data();
+        return `<div class="msg ${session && m.sender===session.usernameLower?'you':''}"><b>@${m.sender}</b>: ${escapeHtml(m.text)}</div>`;
+      }).join('');
+      chat.scrollTop = chat.scrollHeight;
+    });
+    commUnsubs.set(slug, unsub);
+  }
+  async function sendCommunityMsg(slug){
+    if(!session) return alert('Inicia sesión');
+    const inp = $('#commInput-'+slug); const text = inp.value.trim(); if(!text) return;
+    await addDoc(collection(db,'communities', slug, 'messages'),{
+      sender: session.usernameLower, text, createdAt: serverTimestamp()
+    });
+    inp.value='';
+  }
 
-/* ===== Cleanup listeners ===== */
-function cleanupListeners(){
-  [unsubFeed,unsubProfile,unsubFollowCounts,unsubChat,unsubCommunity].forEach(f=>{try{f&&f()}catch(e){}});
-  unsubFeed=unsubProfile=unsubFollowCounts=unsubChat=unsubCommunity=null;
-}
+  // DM (threads + mensajes)
+  function threadId(a,b){ return [a,b].sort().join('__'); }
+  $('#btnSendDM').onclick = async ()=>{
+    if(!session) return; const to = $('#dmTo').value.trim().toLowerCase();
+    if(!to||to===session.usernameLower) return; const text = $('#dmText').value.trim(); if(!text) return;
+    await sendDM(to, text); $('#dmText').value=''; openDM(to);
+  };
+  $('#btnCloseDM').onclick = ()=>{ show($('#dmThread'), false); };
+  $('#btnSendDMInline').onclick = async ()=>{
+    const to = $('#dmWith').dataset.u; const text = $('#dmInputMsg').value.trim(); if(!text) return;
+    await sendDM(to, text); $('#dmInputMsg').value='';
+  };
 
-/* ===== Expose some helpers to window ===== */
-window.showHome=showHome;
-window.showProfile=showProfile;
-window.showCommunities=showCommunities;
-window.showMessages=showMessages;
-window.showSearch=showSearch;
+  async function sendDM(to, text){
+    // asegura que existe el hilo
+    const tid = threadId(session.usernameLower, to);
+    await setDoc(doc(db,'dmThreads', tid),{ users:[session.usernameLower, to], updatedAt: serverTimestamp() }, {merge:true});
+    await addDoc(collection(db,'dmThreads', tid, 'messages'),{ sender: session.usernameLower, text, createdAt: serverTimestamp() });
+  }
+
+  function bindDMList(){
+    if(!session){ $('#dmList').innerHTML=''; return; }
+    onSnapshot(query(collection(db,'dmThreads'), where('users','array-contains', session.usernameLower), orderBy('updatedAt','desc')), (ss)=>{
+      $('#dmList').innerHTML = ss.docs.map(d=>{
+        const others = (d.data().users||[]).filter(u=>u!==session.usernameLower);
+        const withU = others[0]||'?';
+        return `<div class="between" style="padding:4px 0;border-bottom:1px solid #22303c">
+          <div>@${withU}</div>
+          <button class="ghost" data-open-dm="${withU}">Abrir</button>
+        </div>`
+      }).join('');
+      $$('#dmList [data-open-dm]').forEach(b=> b.addEventListener('click',()=> openDM(b.dataset.openDm)));
+    });
+  }
+
+  function openDM(u){
+    show($('#dmThread'), true);
+    $('#dmWith').textContent='@'+u; $('#dmWith').dataset.u=u;
+    const list = $('#dmMessages');
+    const tid = threadId(session.usernameLower, u);
+    onSnapshot(query(collection(db,'dmThreads', tid, 'messages'), orderBy('createdAt','asc')),(ss)=>{
+      list.innerHTML = ss.docs.map(d=>{
+        const m = d.data();
+        return `<div class="msg ${m.sender===session.usernameLower?'you':''}"><span class="muted">@${m.sender}</span> ${escapeHtml(m.text)}</div>`;
+      }).join('');
+      list.scrollTop = list.scrollHeight;
+    });
+  }
+
+  // Cargar datos de mi perfil (para avatar del composer)
+  async function loadMeProfile(){
+    if(!session) return; const me = (await getDoc(doc(db,'users', session.usernameLower))).data();
+    $('#meAvatar').src = me?.avatarUrl||'';
+    showProfile(session.usernameLower);
+  }
+
+  // Inicialización
+  await seedCracky();
+  renderSession();
+  bindUsers();
+  bindFeed();
+  bindDMList();
+
+  // Seguridad (recomendado): configura Reglas de Firestore para permitir lectura y escritura sólo a auth != null
+  // y validar campos. Este demo usa Auth anónimo + validaciones básicas en cliente. Refuerza reglas en tu proyecto.
 </script>
 </body>
 </html>
