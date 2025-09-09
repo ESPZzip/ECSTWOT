@@ -1,597 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MiniDiscord • Fire</title>
+<meta charset="UTF-8">
+<title>Roblox Revival - Todo en Uno</title>
 <style>
-  :root{
-    --bg:#0b1020; --panel:#0d1326; --line:#1a2440; --soft:#0f1730;
-    --text:#e6edf7; --muted:#98a6c7; --accent:#5661ff; --ok:#16a34a; --warn:#f59e0b; --err:#ef4444;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;height:100vh;display:flex}
-  /* Layout */
-  #servers{width:76px;background:#0a0f1f;border-right:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
-  #servers .srv{width:52px;height:52px;border-radius:18px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer}
-  #servers .srv.active{outline:2px solid var(--accent)}
-  #channels{width:260px;background:var(--panel);border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column}
-  #main{flex:1;display:flex;flex-direction:column}
-  #topbar{height:52px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--panel)}
-  #chat{flex:1;display:grid;grid-template-columns:1fr 280px;gap:10px;padding:10px}
-  #messages{background:var(--soft);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
-  #messageList{flex:1;overflow:auto;padding:12px}
-  #composer{border-top:1px solid var(--line);padding:10px;background:var(--panel);display:flex;gap:8px}
-  #members{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto}
-  /* Cards / buttons */
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:10px;background:#0a1228;color:var(--text)}
-  button{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#0f1730;color:var(--text);cursor:pointer}
-  button.primary{background:var(--accent);border-color:transparent}
-  button.success{background:var(--ok);border-color:transparent}
-  button.warn{background:var(--warn);border-color:transparent}
-  button.danger{background:var(--err);border-color:transparent}
-  .muted{color:var(--muted)}
-  .title{font-weight:700}
-  .chip{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
-  .role{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;margin-right:6px;border:1px solid var(--line)}
-  .msg{margin:8px 0;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#0c142a}
-  .msg.me{background:#0f1b3b}
-  .avatar{width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--line)}
-  .hidden{display:none}
-  /* Toaster */
-  #toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:9999}
-  .toast{background:#1f2937;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.35)}
-  /* Friends panel */
-  #friendsPanel{position:fixed;left:86px;top:62px;bottom:10px;width:420px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto;z-index:9}
+  body { margin:0; overflow:hidden; }
+  canvas { display:block; }
+  #inventory { position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.5); padding:10px; border-radius:5px; }
+  #inventory button { margin:5px; padding:5px; }
+  .playerName { position:absolute; color:white; font-weight:bold; text-shadow:0 0 5px black; pointer-events:none; }
+  #toolbar { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.5); padding:5px; border-radius:5px; }
+  #toolbar button { margin:2px; padding:5px; }
 </style>
-<!-- Firebase v8 -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
-<!-- LEFT: Servers column -->
-<section id="servers">
-  <div class="srv" title="Amigos / DMs" onclick="toggleFriends()">👥</div>
-  <div id="serverList"></div>
-  <div class="srv" title="Crear servidor" onclick="openCreateServer()">＋</div>
-</section>
+<div id="inventory">
+  <button onclick="selectAvatar('avatar1')">Avatar 1</button>
+  <button onclick="selectAvatar('avatar2')">Avatar 2</button>
+</div>
 
-<!-- MID-LEFT: Channels -->
-<section id="channels">
-  <div class="card" id="authBox">
-    <div class="title">Acceso</div>
-    <input id="loginUser" placeholder="Usuario"/>
-    <input id="loginPass" type="password" placeholder="Contraseña"/>
-    <div class="row">
-      <button class="primary" onclick="register()">Registrar</button>
-      <button onclick="login()">Login</button>
-    </div>
-  </div>
-  <div class="card hidden" id="sessionBox">
-    <div class="row" style="justify-content:space-between">
-      <div class="title" id="meName">—</div>
-      <button onclick="logout()">Cerrar sesión</button>
-    </div>
-    <div class="muted" id="meHint">ID listo</div>
-  </div>
+<div id="toolbar">
+  <button onclick="selectBlockColor(0x888888)">Gris</button>
+  <button onclick="selectBlockColor(0xff0000)">Rojo</button>
+  <button onclick="selectBlockColor(0x00ff00)">Verde</button>
+  <button onclick="selectBlockColor(0x0000ff)">Azul</button>
+</div>
 
-  <div id="serverMeta" class="card hidden">
-    <div class="title" id="srvName">Servidor</div>
-    <div class="row">
-      <button onclick="openJoinServer()">Unirse</button>
-      <button onclick="copyInvite()">Invitar</button>
-      <button onclick="openRoles()">Roles</button>
-      <button onclick="openAddChannel()">Canal ＋</button>
-    </div>
-    <div class="muted" id="srvIdHint"></div>
-  </div>
-
-  <div id="channelList" class="card hidden">
-    <div class="title">Canales</div>
-    <div id="channelsBox"></div>
-  </div>
-</section>
-
-<!-- CENTER + RIGHT -->
-<section id="main">
-  <div id="topbar">
-    <div><span id="topServer">—</span> / <b id="topChannel">—</b></div>
-    <div class="row">
-      <button onclick="toggleFriends()">Amigos/DMs</button>
-    </div>
-  </div>
-
-  <div id="chat">
-    <div id="messages">
-      <div id="messageList"></div>
-      <div id="composer" class="hidden">
-        <input id="msgText" placeholder="Escribe un mensaje… (Enter para enviar)"/>
-        <button class="primary" onclick="sendMessage()">Enviar</button>
-      </div>
-    </div>
-    <div id="members">
-      <div class="title">Miembros</div>
-      <div id="memberList" class="muted">Selecciona un servidor…</div>
-    </div>
-  </div>
-</section>
-
-<!-- FRIENDS PANEL -->
-<section id="friendsPanel" class="hidden">
-  <div class="title">Amigos y DMs</div>
-  <div class="card">
-    <div class="row">
-      <input id="searchUser" placeholder="Buscar usuario para agregar"/>
-      <button onclick="sendFriendReq()">Enviar solicitud</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="title">Solicitudes recibidas</div>
-    <div id="reqInbox" class="muted">—</div>
-  </div>
-  <div class="card">
-    <div class="title">Solicitudes enviadas</div>
-    <div id="reqOut" class="muted">—</div>
-  </div>
-  <div class="card">
-    <div class="title">Amigos</div>
-    <div id="friendsList" class="muted">—</div>
-  </div>
-</section>
-
-<!-- MODALS (simples) -->
-<div id="modalRoot"></div>
-<div id="toasts"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
 <script>
-/* ================== Firebase ================== */
-const firebaseConfig = {
-  apiKey: "AIzaSyBwj_as6pb5Bg81F9Cl9VWTKkekMM9Exfk",
-  authDomain: "pekora-forum.firebaseapp.com",
-  projectId: "pekora-forum",
-  storageBucket: "pekora-forum.firebasestorage.app",
-  messagingSenderId: "161910967859",
-  appId: "1:161910967859:web:6a28cecaae74b9b7e9dd46",
-  measurementId: "G-BPBTW5KBRK"
+/* ==== CONFIGURACION === */
+const ws = new WebSocket('ws://localhost:8080'); // Cambia a tu IP para LAN
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+/* ==== VARIABLES === */
+let players = {}, blocks = {}, playerLabels = {};
+let myId, selectedAvatar='avatar1', selectedColor=0x888888;
+const geometry = new THREE.BoxGeometry(1,1,1);
+camera.position.z = 5;
+
+/* ==== FUNCIONES === */
+function getPlayerMaterial(avatar){
+    const color = avatar==='avatar1'?0xffff00:0xff00ff; // Simula textura
+    return new THREE.MeshBasicMaterial({color});
+}
+
+function createOrUpdatePlayer(id, pdata){
+    if(!players[id]){
+        let mesh = new THREE.Mesh(geometry,getPlayerMaterial(pdata.avatar));
+        mesh.position.set(pdata.x,pdata.y,pdata.z);
+        scene.add(mesh);
+        players[id] = mesh;
+
+        let label = document.createElement('div');
+        label.className='playerName';
+        label.innerText = id;
+        document.body.appendChild(label);
+        playerLabels[id] = label;
+    } else {
+        players[id].position.set(pdata.x,pdata.y,pdata.z);
+        players[id].material = getPlayerMaterial(pdata.avatar);
+    }
+}
+
+function createOrUpdateBlock(b){
+    if(!blocks[b.id]){
+        let mat = new THREE.MeshBasicMaterial({color:b.color||0x888888});
+        let mesh = new THREE.Mesh(geometry, mat);
+        mesh.position.set(b.x,b.y,b.z);
+        scene.add(mesh);
+        blocks[b.id] = mesh;
+    }
+}
+
+function animate(){
+    requestAnimationFrame(animate);
+    renderer.render(scene,camera);
+    for(let id in players){
+        let vector = players[id].position.clone();
+        vector.project(camera);
+        let x = (vector.x+1)/2*window.innerWidth;
+        let y = (-vector.y+1)/2*window.innerHeight;
+        playerLabels[id].style.left = x+'px';
+        playerLabels[id].style.top = y+'px';
+    }
+}
+animate();
+
+/* ==== SOCKET === */
+ws.onmessage = e=>{
+    const data = JSON.parse(e.data);
+    if(data.type==='init'){
+        myId = data.id;
+        for(let id in data.players) createOrUpdatePlayer(id, data.players[id]);
+        data.blocks.forEach(b=>createOrUpdateBlock(b));
+    }
+    if(data.type==='update'){
+        for(let id in data.players) createOrUpdatePlayer(id, data.players[id]);
+        data.blocks.forEach(b=>createOrUpdateBlock(b));
+    }
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-/* ================== Estado ================== */
-let me = null; // username
-let currentServer = null; // serverId
-let currentChannel = null; // channelId
-
-let unsubServers=null,unsubChannels=null,unsubMessages=null,unsubMembers=null;
-function $(id){return document.getElementById(id);}
-function toast(msg){const t=document.createElement('div');t.className='toast';t.innerText=msg;$('toasts').appendChild(t);setTimeout(()=>t.remove(),3500);}
-
-/* ================== Utils ================== */
-function timeago(ts){try{const d=Date.now()-ts;const m=Math.floor(d/60000);if(m<1)return"ahora";if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";const dd=Math.floor(h/24);return dd+"d";}catch(e){return ""}}
-function serverRef(id){return db.collection('servers').doc(id);}
-function channelRef(sid,cid){return serverRef(sid).collection('channels').doc(cid);}
-
-/* ================== Auth simple ================== */
-async function register(){
-  const u=$('loginUser').value.trim(); const p=$('loginPass').value.trim();
-  if(!u||!p) return alert('Faltan datos');
-  const doc=await db.collection('users').doc(u).get();
-  if(doc.exists) return alert('Usuario ya existe');
-  await db.collection('users').doc(u).set({
-    pass:p, avatar:'', created:Date.now(), friends:[], bio:''
-  });
-  localStorage.setItem('session',u);
-  start(u);
-}
-async function login(){
-  const u=$('loginUser').value.trim(); const p=$('loginPass').value.trim();
-  const s=await db.collection('users').doc(u).get();
-  if(!s.exists) return alert('No existe usuario');
-  if(s.data().pass!==p) return alert('Contraseña incorrecta');
-  localStorage.setItem('session',u);
-  start(u);
-}
-function logout(){
-  localStorage.removeItem('session'); location.reload();
-}
-function start(u){
-  me=u;
-  $('authBox').classList.add('hidden');
-  $('sessionBox').classList.remove('hidden');
-  $('meName').innerText='@'+u;
-  loadServers();
-  $('composer').classList.remove('hidden');
-  toggleFriends(false);
-}
-window.onload=()=>{
-  const s=localStorage.getItem('session');
-  if(s) start(s);
-}
-
-/* ================== Servers ================== */
-function loadServers(){
-  if(unsubServers) unsubServers();
-  unsubServers = db.collection('servers').where('members','array-contains',me)
-    .orderBy('created','desc').onSnapshot(s=>{
-      const box=$('serverList'); box.innerHTML='';
-      s.forEach(d=>{
-        const sv=d.data();
-        const el=document.createElement('div');
-        el.className='srv'+(currentServer===d.id?' active':'');
-        el.title=sv.name;
-        el.textContent=(sv.name||'SV').slice(0,2).toUpperCase();
-        el.onclick=()=>selectServer(d.id);
-        box.appendChild(el);
-      });
-    });
-}
-async function openCreateServer(){
-  modal(`
-    <div class="card"><div class="title">Crear servidor</div>
-      <input id="svName" placeholder="Nombre del servidor"/>
-      <div class="row">
-        <button class="primary" onclick="createServer()">Crear</button>
-        <button onclick="closeModal()">Cancelar</button>
-      </div>
-    </div>
-  `);
-}
-async function createServer(){
-  const name=$('svName').value.trim(); if(!name) return;
-  const ref=await db.collection('servers').add({
-    name, owner:me, created:Date.now(), members:[me], invite:genInvite()
-  });
-  await serverRef(ref.id).collection('members').doc(me).set({roles:[],joinedAt:Date.now()});
-  toast('Servidor creado'); closeModal(); selectServer(ref.id);
-}
-function genInvite(){return Math.random().toString(36).slice(2,8).toUpperCase();}
-function copyInvite(){
-  if(!currentServer) return;
-  serverRef(currentServer).get().then(s=>{
-    const inv=s.data().invite; navigator.clipboard.writeText(inv||''); toast('Invitación copiada: '+inv);
-  });
-}
-function openJoinServer(){
-  modal(`
-    <div class="card"><div class="title">Unirse a servidor</div>
-      <input id="joinCode" placeholder="Código de invitación"/>
-      <div class="row">
-        <button class="primary" onclick="joinServer()">Unirse</button>
-        <button onclick="closeModal()">Cancelar</button>
-      </div>
-    </div>
-  `);
-}
-async function joinServer(){
-  const code=$('joinCode').value.trim().toUpperCase(); if(!code) return;
-  const q=await db.collection('servers').where('invite','==',code).limit(1).get();
-  if(q.empty) return alert('Invitación inválida');
-  const doc=q.docs[0]; const sid=doc.id; const sv=doc.data();
-  if(!(sv.members||[]).includes(me)){
-    await serverRef(sid).update({members:[...sv.members, me]});
-    await serverRef(sid).collection('members').doc(me).set({roles:[],joinedAt:Date.now()});
-  }
-  toast('Unido a '+sv.name); closeModal(); selectServer(sid);
-}
-function selectServer(id){
-  currentServer=id; currentChannel=null;
-  $('srvName').innerText=''; $('srvIdHint').innerText='';
-  $('serverMeta').classList.remove('hidden');
-  $('channelList').classList.remove('hidden');
-  $('topServer').innerText='Servidor';
-  $('topChannel').innerText='—';
-  // server meta
-  serverRef(id).onSnapshot(s=>{
-    const d=s.data(); $('srvName').innerText=d.name; $('topServer').innerText=d.name; $('srvIdHint').innerText='ID: '+s.id;
-  });
-  // channels
-  if(unsubChannels) unsubChannels();
-  unsubChannels = serverRef(id).collection('channels').orderBy('created','asc').onSnapshot(s=>{
-    const box=$('channelsBox'); box.innerHTML='';
-    if(s.empty){ box.innerHTML='<div class="muted">No hay canales</div>'; return; }
-    s.forEach(c=>{
-      const ch=c.data();
-      const row=document.createElement('div');
-      row.className='row';
-      row.innerHTML=`<button style="width:100%;text-align:left" onclick="selectChannel('${c.id}')"># ${ch.name}</button>`;
-      box.appendChild(row);
-    });
-  });
-  // members
-  if(unsubMembers) unsubMembers();
-  unsubMembers = serverRef(id).collection('members').onSnapshot(drawMembers);
-}
-function drawMembers(snap){
-  const box=$('memberList'); box.innerHTML='';
-  if(snap.empty){box.innerHTML='<div class="muted">Sin miembros</div>';return;}
-  snap.forEach(m=>{
-    const md=m.data();
-    const roles=(md.roles||[]).map(r=>`<span class="role" style="background:${r.color||'#18213a'}">${r.name}</span>`).join(' ');
-    box.innerHTML+=`
-      <div class="row" style="justify-content:space-between;margin:6px 0">
-        <div class="row">
-          <img class="avatar" src="${md.avatar||''}" onerror="this.src='';">
-          <div>
-            <div><b>${m.id}</b></div>
-            <div class="muted">${roles||'—'}</div>
-          </div>
-        </div>
-        <div class="row">
-          <button onclick="openAssignRole('${m.id}')">Roles</button>
-          <button onclick="openDM('${m.id}')">DM</button>
-        </div>
-      </div>
-    `;
-  });
-}
-
-/* ================== Canales y chat ================== */
-function openAddChannel(){
-  if(!currentServer) return;
-  modal(`
-    <div class="card"><div class="title">Crear canal</div>
-      <input id="chName" placeholder="nombre-del-canal"/>
-      <div class="row">
-        <button class="primary" onclick="createChannel()">Crear</button>
-        <button onclick="closeModal()">Cancelar</button>
-      </div>
-    </div>
-  `);
-}
-async function createChannel(){
-  const name=$('chName').value.trim(); if(!name) return;
-  await serverRef(currentServer).collection('channels').add({name, created:Date.now(), type:'text'});
-  toast('Canal creado'); closeModal();
-}
-function selectChannel(cid){
-  currentChannel=cid;
-  $('topChannel').innerText='#';
-  channelRef(currentServer,cid).get().then(s=> $('topChannel').innerText = '# '+(s.data().name||'canal'));
-  if(unsubMessages) unsubMessages();
-  unsubMessages = channelRef(currentServer,cid).collection('messages').orderBy('ts','asc').limit(400)
-    .onSnapshot(s=>{
-      const box=$('messageList'); box.innerHTML='';
-      s.forEach(m=>{
-        const d=m.data();
-        const mine=d.from===me?' me':'';
-        box.innerHTML += `
-          <div class="msg${mine}">
-            <div class="muted" style="font-size:12px">${d.from} · ${timeago(d.ts)}</div>
-            <div>${(d.text||'').replace(/</g,'&lt;')}</div>
-            ${d.image?`<img src="${d.image}" style="max-width:100%;border-radius:10px;margin-top:6px;border:1px solid var(--line)">`:''}
-          </div>
-        `;
-      });
-      box.scrollTop=box.scrollHeight;
-    });
-}
-async function sendMessage(){
-  if(!me||!currentServer||!currentChannel) return;
-  const t=$('msgText').value.trim(); if(!t) return;
-  await channelRef(currentServer,currentChannel).collection('messages').add({from:me,text:t,ts:Date.now()});
-  $('msgText').value='';
-}
-$('msgText').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendMessage();}});
-
-/* ================== Roles ================== */
-function openRoles(){
-  if(!currentServer) return;
-  modal(`
-    <div class="card"><div class="title">Roles del servidor</div>
-      <div class="row"><input id="roleName" placeholder="Nombre del rol"><input id="roleColor" placeholder="#4466ff (color)"></div>
-      <div class="row">
-        <button class="success" onclick="addRole()">Crear rol</button>
-        <button onclick="closeModal()">Cerrar</button>
-      </div>
-      <div id="roleList" class="muted" style="margin-top:8px">Cargando…</div>
-    </div>
-  `);
-  serverRef(currentServer).collection('roles').orderBy('name','asc').onSnapshot(s=>{
-    const box=$('roleList'); box.innerHTML='';
-    if(s.empty){box.innerHTML='No hay roles';return;}
-    s.forEach(r=>{
-      const d=r.data();
-      box.innerHTML += `<div class="row"><span class="role" style="background:${d.color||'#18213a'}">${d.name}</span> <span class="muted">(${r.id})</span></div>`;
-    });
-  });
-}
-async function addRole(){
-  const name=$('roleName').value.trim(); const color=$('roleColor').value.trim()||'#2a3d7a';
-  if(!name) return;
-  await serverRef(currentServer).collection('roles').add({name,color});
-  $('roleName').value=''; $('roleColor').value='';
-  toast('Rol creado');
-}
-function openAssignRole(userId){
-  if(!currentServer) return;
-  modal(`
-    <div class="card"><div class="title">Asignar rol a ${userId}</div>
-      <select id="assignSelect"></select>
-      <div class="row">
-        <button class="primary" onclick="assignRole('${userId}')">Asignar</button>
-        <button class="warn" onclick="clearRoles('${userId}')">Quitar todos</button>
-        <button onclick="closeModal()">Cerrar</button>
-      </div>
-    </div>
-  `);
-  serverRef(currentServer).collection('roles').orderBy('name','asc').get().then(s=>{
-    const sel=$('assignSelect');
-    s.forEach(r=>{
-      const opt=document.createElement('option');
-      opt.value=JSON.stringify({name:r.data().name,color:r.data().color});
-      opt.textContent=r.data().name;
-      sel.appendChild(opt);
-    });
-  });
-}
-async function assignRole(userId){
-  const role=JSON.parse($('assignSelect').value);
-  const ref=serverRef(currentServer).collection('members').doc(userId);
-  const snap=await ref.get(); const cur=snap.data()||{};
-  const roles=cur.roles||[]; roles.push(role);
-  await ref.set({...cur, roles},{merge:true});
-  toast('Rol asignado'); closeModal();
-}
-async function clearRoles(userId){
-  await serverRef(currentServer).collection('members').doc(userId).set({roles:[]},{merge:true});
-  toast('Roles borrados'); closeModal();
-}
-
-/* ================== Amigos y DMs ================== */
-let friendsOpen=false;
-function toggleFriends(force){
-  const el=$('friendsPanel');
-  if(typeof force==='boolean'){friendsOpen=force;} else {friendsOpen=!friendsOpen;}
-  el.classList.toggle('hidden', !friendsOpen);
-  if(friendsOpen) loadFriendsUI();
-}
-function openDM(userId){
-  toggleFriends(true);
-  // abre chat con usuario
-  startDM(userId);
-}
-function chatId(a,b){return [a,b].sort().join('_');}
-let dmUnsub=null, currentDM=null;
-function startDM(user){
-  if(me===user) return;
-  currentDM=user;
-  const id=chatId(me,user);
-  const box=document.createElement('div');
-  box.className='card';
-  box.innerHTML=`
-    <div class="title">Chat con ${user}</div>
-    <div id="dmList" style="max-height:40vh;overflow:auto;margin:6px 0"></div>
-    <div class="row"><input id="dmText" placeholder="Mensaje"><button class="primary" onclick="sendDM()">Enviar</button></div>
-  `;
-  $('friendsPanel').appendChild(box);
-  if(dmUnsub) dmUnsub();
-  dmUnsub = db.collection('chats').doc(id).collection('messages').orderBy('ts','asc').limit(300).onSnapshot(s=>{
-    const L=box.querySelector('#dmList'); L.innerHTML='';
-    s.forEach(m=>{
-      const d=m.data();
-      L.innerHTML+=`<div class="msg ${d.from===me?'me':''}"><div class="muted" style="font-size:12px">${d.from} · ${timeago(d.ts)}</div>${(d.text||'')}</div>`;
-    });
-    L.scrollTop=L.scrollHeight;
-  });
-}
-async function sendDM(){
-  if(!currentDM) return;
-  const t=document.getElementById('dmText').value.trim(); if(!t) return;
-  await db.collection('chats').doc(chatId(me,currentDM)).collection('messages').add({from:me,text:t,ts:Date.now()});
-  document.getElementById('dmText').value='';
-}
-async function sendFriendReq(){
-  const target=$('searchUser').value.trim(); if(!target||target===me) return;
-  const u=await db.collection('users').doc(target).get(); if(!u.exists) return alert('No existe');
-  const id=`${target}_${me}`;
-  await db.collection('friendRequests').doc(id).set({to:target,from:me,ts:Date.now(),status:'pending'});
-  toast('Solicitud enviada');
-  loadFriendsUI();
-}
-function loadFriendsUI(){
-  // Inbox
-  db.collection('friendRequests').where('to','==',me).where('status','==','pending').onSnapshot(s=>{
-    const box=$('reqInbox'); box.innerHTML='';
-    if(s.empty){box.innerHTML='Sin solicitudes';return;}
-    s.forEach(d=>{
-      const r=d.data();
-      box.innerHTML+=`
-        <div class="row" style="justify-content:space-between">
-          <div>${r.from}</div>
-          <div class="row">
-            <button class="success" onclick="acceptReq('${d.id}','${r.from}')">Aceptar</button>
-            <button class="danger" onclick="declineReq('${d.id}')">Rechazar</button>
-          </div>
-        </div>`;
-    });
-  });
-  // Outbox
-  db.collection('friendRequests').where('from','==',me).onSnapshot(s=>{
-    const box=$('reqOut'); box.innerHTML='';
-    if(s.empty){box.innerHTML='No has enviado solicitudes';return;}
-    s.forEach(d=>{
-      const r=d.data();
-      box.innerHTML+=`<div>${r.to} · <span class="muted">${r.status}</span></div>`;
-    });
-  });
-  // Friends list
-  db.collection('users').doc(me).collection('friends').onSnapshot(s=>{
-    const box=$('friendsList'); box.innerHTML='';
-    if(s.empty){box.innerHTML='Aún no tienes amigos';return;}
-    s.forEach(f=>{
-      const fid=f.id;
-      box.innerHTML+=`
-        <div class="row" style="justify-content:space-between">
-          <div>${fid}</div>
-          <div class="row">
-            <button onclick="openDM('${fid}')">DM</button>
-          </div>
-        </div>`;
-    });
-  });
-}
-async function acceptReq(reqId, from){
-  await db.collection('users').doc(me).collection('friends').doc(from).set({since:Date.now()});
-  await db.collection('users').doc(from).collection('friends').doc(me).set({since:Date.now()});
-  await db.collection('friendRequests').doc(reqId).update({status:'accepted'});
-  toast('Ahora son amigos');
-}
-async function declineReq(reqId){
-  await db.collection('friendRequests').doc(reqId).update({status:'declined'});
-  toast('Solicitud rechazada');
-}
-
-/* ================== Roles helpers: asignar muestra avatar ================== */
-serverRef; // (no-op linter)
-
-/* ================== Perfil básico (avatar opcional) ================== */
-db.collection('users').doc; // hint
-
-/* ================== Modales ================== */
-function modal(html){
-  $('modalRoot').innerHTML = `
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99" onclick="closeModal(event)">
-      <div onclick="event.stopPropagation()" style="width:min(520px,92vw)">
-        ${html}
-      </div>
-    </div>`;
-}
-function closeModal(e){$('modalRoot').innerHTML='';}
-
-/* ================== Teclas rápidas ================== */
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape') closeModal();
+/* ==== CONTROLES === */
+document.addEventListener('keydown', e=>{
+    let mesh=players[myId]; if(!mesh) return;
+    if(e.key==='w') mesh.position.z-=0.2;
+    if(e.key==='s') mesh.position.z+=0.2;
+    if(e.key==='a') mesh.position.x-=0.2;
+    if(e.key==='d') mesh.position.x+=0.2;
+    ws.send(JSON.stringify({type:'move', position:{x:mesh.position.x,y:mesh.position.y,z:mesh.position.z}}));
 });
 
-/* ================== Avatar en miembros ================== */
-async function ensureMemberDocAvatar(serverId,userId){
-  const u=await db.collection('users').doc(userId).get();
-  await serverRef(serverId).collection('members').doc(userId).set({avatar:u.data()?.avatar||''},{merge:true});
-}
+document.addEventListener('click', e=>{
+    let mesh=players[myId]; if(!mesh) return;
+    let id = Date.now().toString();
+    let block = {id,x:mesh.position.x,y:mesh.position.y-1,z:mesh.position.z,color:selectedColor};
+    ws.send(JSON.stringify({type:'placeBlock', block}));
+});
 
-/* ================== Extra: set avatar/bio simples ================== */
-(function attachProfileQuick(){
-  // peq. panel en sessionBox
-  const box=document.createElement('div');
-  box.className='card';
-  box.innerHTML=`
-    <div class="title">Perfil</div>
-    <input id="pfAvatar" placeholder="URL avatar (opcional)"/>
-    <input id="pfBio" placeholder="Bio (opcional)"/>
-    <button onclick="saveProfile()">Guardar</button>
-  `;
-  document.getElementById('channels').appendChild(box);
-})();
-async function saveProfile(){
-  const a=$('pfAvatar').value.trim(); const b=$('pfBio').value.trim();
-  if(!me) return;
-  await db.collection('users').doc(me).set({avatar:a,bio:b},{merge:true});
-  if(currentServer) await ensureMemberDocAvatar(currentServer,me);
-  toast('Perfil actualizado');
-}
+document.addEventListener('contextmenu', e=>{
+    e.preventDefault();
+    let keys = Object.keys(blocks); if(keys.length===0) return;
+    ws.send(JSON.stringify({type:'removeBlock', blockId:keys[keys.length-1]}));
+});
+
+/* ==== INVENTARIO / BARRA === */
+function selectAvatar(name){ selectedAvatar=name; ws.send(JSON.stringify({type:'changeAvatar', avatar:name})); }
+function selectBlockColor(color){ selectedColor=color; }
 </script>
+
 </body>
 </html>
